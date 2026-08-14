@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+
+# Local-only Vite environment files. Never place secrets in VITE_* variables.
+.env
+.env.local
+.env.*.local
+
+*.log
+.vite/
