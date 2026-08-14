@@ -6,12 +6,12 @@ Each milestone should be independently reviewable and committable.
 
 - Product boundaries, requirements, architecture, security, integrity policy, and decisions
 
-## Phase 1 — Runnable skeleton (in progress)
+## Phase 1 — Runnable skeleton (complete)
 
 - Phase 1A complete: Java 21 Spring Boot backend, eight closed Spring Modulith modules, health endpoint, Maven wrapper, and automated context/boundary tests
 - Phase 1B complete: local PostgreSQL Compose service, persistent volume, Flyway-only schema foundation, and Docker-backed integration testing
 - Phase 1C complete: Node.js 24 LTS, Vite React/TypeScript shell, backend health proxy/client, responsive accessible styling, and frontend quality gates
-- Formatting and CI
+- Phase 1D complete: SHA-pinned GitHub Actions for backend, frontend, and PostgreSQL infrastructure; repository formatting conventions; and a Windows foundation verifier
 
 ## Phase 2 — Identity and isolation
 

@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 1C — frontend foundation complete. The React shell connects to backend health through the local Vite proxy, marks all unfinished product areas as upcoming, and preserves the project's privacy and résumé-integrity promises. Authentication, business entities and APIs, and integrations remain unimplemented.
+Phase 1 — runnable foundation complete. The modular backend, PostgreSQL/Flyway infrastructure, React shell, and repository-wide verification are covered by local checks and three parallel CI jobs. Authentication, business entities and APIs, and integrations remain unimplemented.
 
 ## Planned capabilities
 
@@ -103,13 +103,21 @@ docker compose stop
 # Stop and remove the container/network; keep the named volume
 docker compose down
 
-# Permanently delete the local database volume and start fresh
-docker compose down --volumes
 ```
+
+Both commands preserve the named PostgreSQL volume. Deliberate volume deletion is omitted from routine development instructions to protect local data.
 
 Flyway is the only schema-management mechanism. Its managed/default schema and history table are both inside `job_search_assistant`, so future unqualified migration objects resolve there rather than in `public`. The initial migration establishes only that schema foundation and creates no business tables.
 
 ### Tests and verification
+
+From the repository root, run the complete Windows foundation check:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-foundation.ps1
+```
+
+The script resolves the repository root from its own location, so it also works when invoked by absolute path from another directory. It stops at the first failure and always runs backend fast tests, frontend quality checks, and Compose configuration validation. When the Docker engine is available, it also runs the full backend verification with PostgreSQL Testcontainers; otherwise it reports a partial verification and the omitted Docker-dependent step.
 
 ```powershell
 # Fast context and module-boundary tests; Docker is not required
@@ -132,6 +140,8 @@ npm.cmd run format:check
 npm.cmd run build
 ```
 
+GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQL Compose smoke jobs. The backend and infrastructure jobs require Docker on the runner; the frontend job does not. Test reports are retained as failure diagnostics, while successful runs do not create unnecessary report artifacts.
+
 ## Next milestone
 
-Continue Phase 1 with repository-wide formatting and CI as separately reviewable increments. Authentication and candidate/domain behavior begin only in their documented phases; AI and job scraping remain out of scope.
+Phase 2: identity and isolation, beginning with accounts, password authentication, secure sessions, and owner-scoped persistence. AI and job scraping remain out of scope.
