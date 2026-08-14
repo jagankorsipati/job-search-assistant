@@ -1,0 +1,19 @@
+target/
+
+### IntelliJ IDEA ###
+.idea/
+*.iml
+
+### Eclipse ###
+.classpath
+.project
+.settings/
+
+### Visual Studio Code ###
+.vscode/
+
+### Runtime and local configuration ###
+*.log
+application-local.properties
+application-local.yml
+application-local.yaml

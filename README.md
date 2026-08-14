@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 0 — product and architecture definition. No application code exists yet.
+Phase 1A — minimal Spring Boot backend foundation complete. The backend is runnable, its documented module boundaries are verified by tests, and its only intentionally exposed application endpoint is Actuator health. Database, authentication, domain behavior, integrations, and the frontend remain unimplemented.
 
 ## Planned capabilities
 
@@ -45,6 +45,18 @@ Automated application submission and dependable LinkedIn scraping are not part o
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/README.md)
 
+## Local backend development
+
+Prerequisite: JDK 21. Maven is downloaded automatically by the wrapper.
+
+```powershell
+cd backend
+.\mvnw.cmd test
+.\mvnw.cmd spring-boot:run
+```
+
+While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
+
 ## Next milestone
 
-Phase 1 establishes the backend skeleton, database migrations, authentication boundary, health checks, and automated tests without implementing AI or job scraping.
+Continue Phase 1 with separately reviewable infrastructure increments such as persistence and migrations. Authentication and candidate/domain behavior begin only in their documented phases; AI and job scraping remain out of scope.

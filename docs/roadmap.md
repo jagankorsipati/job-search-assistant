@@ -2,16 +2,17 @@
 
 Each milestone should be independently reviewable and committable.
 
-## Phase 0 — Foundation (current)
+## Phase 0 — Foundation (complete)
 
 - Product boundaries, requirements, architecture, security, integrity policy, and decisions
 
-## Phase 1 — Runnable skeleton
+## Phase 1 — Runnable skeleton (in progress)
 
-- Spring Boot modules and React shell
+- Phase 1A complete: Java 21 Spring Boot backend, eight closed Spring Modulith modules, health endpoint, Maven wrapper, and automated context/boundary tests
+- React shell (not started)
 - PostgreSQL migrations
 - Local Docker Compose
-- Health checks, tests, formatting, and CI
+- Formatting and CI
 
 ## Phase 2 — Identity and isolation
 
