@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 1A — minimal Spring Boot backend foundation complete. The backend is runnable, its documented module boundaries are verified by tests, and its only intentionally exposed application endpoint is Actuator health. Database, authentication, domain behavior, integrations, and the frontend remain unimplemented.
+Phase 1B — local PostgreSQL and Flyway infrastructure complete. The backend is runnable against a local PostgreSQL container, Flyway owns schema changes, and the eight documented module boundaries remain verified. Authentication, business entities and APIs, integrations, and the frontend remain unimplemented.
 
 ## Planned capabilities
 
@@ -45,18 +45,68 @@ Automated application submission and dependable LinkedIn scraping are not part o
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/README.md)
 
-## Local backend development
+## Local development
 
-Prerequisite: JDK 21. Maven is downloaded automatically by the wrapper.
+Prerequisites: JDK 21 and Docker Desktop with Linux containers. Maven is downloaded automatically by the wrapper.
+
+Create the ignored local environment file from the tracked example:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+The example values are intentionally limited to local development. Change `DB_PASSWORD` before using this configuration anywhere else; `.env` must never be committed.
+
+Start PostgreSQL and wait for its health check:
+
+```powershell
+docker compose up -d --wait
+docker compose ps
+docker compose exec postgres sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
+```
+
+Compose binds PostgreSQL to `127.0.0.1` only so the backend can run directly on Windows without exposing the database on LAN interfaces.
+
+Load `.env` into the current PowerShell process and run the backend:
 
 ```powershell
 cd backend
-.\mvnw.cmd test
+Get-Content ..\.env | Where-Object { $_ -match '^[^#][^=]*=' } | ForEach-Object { $name, $value = $_ -split '=', 2; Set-Item -Path "Env:$name" -Value $value }
 .\mvnw.cmd spring-boot:run
 ```
 
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
+### Database lifecycle
+
+```powershell
+# Stop without deleting data
+docker compose stop
+
+# Stop and remove the container/network; keep the named volume
+docker compose down
+
+# Permanently delete the local database volume and start fresh
+docker compose down --volumes
+```
+
+Flyway is the only schema-management mechanism. Its managed/default schema and history table are both inside `job_search_assistant`, so future unqualified migration objects resolve there rather than in `public`. The initial migration establishes only that schema foundation and creates no business tables.
+
+### Tests and verification
+
+```powershell
+# Fast context and module-boundary tests; Docker is not required
+cd backend
+.\mvnw.cmd test
+
+# Unit tests plus PostgreSQL/Testcontainers integration tests; Docker is required
+.\mvnw.cmd verify
+
+# From the repository root, validate Compose interpolation
+cd ..
+docker compose config
+```
+
 ## Next milestone
 
-Continue Phase 1 with separately reviewable infrastructure increments such as persistence and migrations. Authentication and candidate/domain behavior begin only in their documented phases; AI and job scraping remain out of scope.
+Continue Phase 1 with the React shell, formatting, and CI as separately reviewable increments. Authentication and candidate/domain behavior begin only in their documented phases; AI and job scraping remain out of scope.
