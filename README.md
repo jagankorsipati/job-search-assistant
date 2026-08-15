@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2C1 — secure backend authentication complete. The backend provides CSRF-protected login/logout, current-session inspection, PostgreSQL-backed sessions, bounded login rate limiting, per-request account validation, and minimal authentication audit events. Invitation HTTP flows and frontend authentication remain deferred to Phase 2C2.
+Phase 2C — browser authentication and invite-only household registration complete. PostgreSQL-backed sessions, CSRF, bounded authentication and invitation controls, offline compromised-password screening, and accessible React login/invitation experiences are implemented. Phase 2 remains in progress pending owner-scoped authorization.
 
 ## Planned capabilities
 
@@ -90,7 +90,11 @@ $env:SESSION_COOKIE_SECURE = 'false'
 
 Secure cookies default to `true` and must remain enabled behind HTTPS. Sessions expire after 30 minutes idle and after 12 hours absolute by default. Optional operational overrides are `SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT`; both must be positive. Do not add authentication secrets to `.env`.
 
-The SPA authentication handshake is `GET /api/auth/csrf`, followed by `POST /api/auth/login` with the returned CSRF header. `GET /api/auth/me` inspects the current session and `POST /api/auth/logout` requires CSRF. Login failure bodies do not distinguish unknown, incorrect-password, pending, or disabled accounts. Bootstrap and invitation services have no HTTP endpoints.
+The SPA authentication handshake is `GET /api/auth/csrf`, followed by `POST /api/auth/login` with the returned CSRF header. `GET /api/auth/me` inspects the current session and `POST /api/auth/logout` requires CSRF. Login failure bodies do not distinguish unknown, incorrect-password, pending, or disabled accounts.
+
+Local household setup proceeds in this order: bootstrap the first administrator, restart normally, sign in as that administrator, create a MEMBER invitation, transfer the one-time fragment link privately, accept it without automatic login, then sign in as the new member. Invitation tokens and passwords must never be copied into source files, logs, `.env`, or command history. The frontend removes invitation fragments immediately and stores no authentication secrets in browser storage.
+
+Compromised-password screening is entirely offline. Provenance and the reviewed update command are documented in [the blocklist guide](docs/security/compromised-password-blocklist.md).
 
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
@@ -146,7 +150,7 @@ Remove-Variable bootstrapSecret, bootstrapPointer -ErrorAction SilentlyContinue
 .\mvnw.cmd spring-boot:run
 ```
 
-Never put bootstrap values in `.env`, command history, source control, or a reusable script. A second bootstrap attempt is refused, including concurrent attempts. Bootstrap and invitation services remain unavailable over HTTP in Phase 2C1.
+Never put bootstrap values in `.env`, command history, source control, or a reusable script. A second bootstrap attempt is refused, including concurrent attempts.
 
 ### Tests and verification
 
@@ -183,4 +187,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2C2: add invitation HTTP flows and frontend authentication screens without exposing administrator account management broadly. Owner-scoped business persistence, AI, and job scraping remain out of scope.
+Phase 2D: implement owner-scoped persistence and authorization integration tests. Account administration, recovery, delegated access, AI, and job scraping remain out of scope.

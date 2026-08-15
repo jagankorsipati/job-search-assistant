@@ -2,14 +2,21 @@ package com.jobsearchassistant.identity;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.time.Instant;
 
 /** One-time carrier for an invitation token. It deliberately has no revealing toString. */
 public final class IssuedInvitation implements AutoCloseable {
 
     private char[] token;
+    private final Instant expiresAt;
 
-    IssuedInvitation(char[] token) {
+    IssuedInvitation(char[] token, Instant expiresAt) {
         this.token = Objects.requireNonNull(token, "token must not be null");
+        this.expiresAt = Objects.requireNonNull(expiresAt, "expiresAt must not be null");
+    }
+
+    public Instant expiresAt() {
+        return expiresAt;
     }
 
     public synchronized String revealToken() {

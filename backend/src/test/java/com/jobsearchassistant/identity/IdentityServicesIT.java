@@ -182,7 +182,7 @@ class IdentityServicesIT {
         String retryableToken = createInvitation(adminId);
 
         assertThatThrownBy(() -> acceptNewMember(retryableToken, "existing.member"))
-                .isInstanceOf(InvitationRejectedException.class);
+                .isInstanceOf(LoginUnavailableException.class);
         assertThat(invitationStatus(retryableToken)).isEqualTo("PENDING");
 
         assertThat(acceptNewMember(retryableToken, "different.member").role()).isEqualTo(AccountRole.MEMBER);

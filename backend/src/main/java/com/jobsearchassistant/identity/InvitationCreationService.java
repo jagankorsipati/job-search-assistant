@@ -55,13 +55,14 @@ public class InvitationCreationService {
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
         Arrays.fill(randomBytes, (byte) 0);
         var now = clock.instant();
+        var expiresAt = now.plus(lifetime);
         repository.insertInvitation(
                 UUID.randomUUID(),
                 tokenDigester.digest(token),
                 AccountRole.MEMBER,
-                now.plus(lifetime),
+                expiresAt,
                 actingAccountId,
                 now);
-        return new IssuedInvitation(token.toCharArray());
+        return new IssuedInvitation(token.toCharArray(), expiresAt);
     }
 }

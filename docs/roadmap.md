@@ -17,10 +17,10 @@ Each milestone should be independently reviewable and committable.
 
 - Phase 2A complete: framework-independent account and invitation lifecycles, constrained identity tables, and documented security boundaries
 - Phase 2B complete: transactional first-administrator bootstrap, Argon2id credentials, MEMBER invitations, JDBC persistence, and generic credential verification
-- Phase 2C (in progress)
+- Phase 2C (complete)
   - Phase 2C1 complete: secure HTTP login/logout/current-session endpoints, PostgreSQL-backed sessions, CSRF, rotation, idle and absolute expiry, per-request account validation, bounded rate limiting, and minimal authentication audit events
-  - Phase 2C2 next: invitation HTTP flows and frontend authentication screens
-- Owner-scoped persistence and authorization integration tests
+  - Phase 2C2 complete: invitation HTTP flows, offline compromised-password screening, anonymous-session exhaustion protection, and accessible frontend authentication
+- Phase 2D next: owner-scoped persistence and authorization integration tests
 - Minimal audit events
 
 ## Phase 3 — Candidate profile

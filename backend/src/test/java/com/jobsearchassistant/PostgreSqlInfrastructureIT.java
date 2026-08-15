@@ -52,7 +52,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3");
+                .containsExactly("1", "2", "3", "4");
     }
 
     @Test

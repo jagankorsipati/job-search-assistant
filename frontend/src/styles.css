@@ -39,8 +39,74 @@ body {
 }
 
 button,
-a {
+a,
+input {
   font: inherit;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+.auth-card {
+  width: min(100%, 34rem);
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow: 0 1rem 4rem rgb(23 37 34 / 8%);
+}
+.auth-card h1 {
+  margin: 2rem 0 0.75rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.05;
+}
+.auth-card form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+.auth-card label {
+  display: grid;
+  gap: 0.4rem;
+  font-weight: 700;
+}
+.auth-card input {
+  width: 100%;
+  min-height: 2.8rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #89938f;
+  border-radius: 0.4rem;
+  background: white;
+}
+.auth-card input:focus-visible {
+  outline: 3px solid #d88a20;
+  outline-offset: 2px;
+}
+.auth-card button,
+.sidebar button,
+.site-header button {
+  min-height: 2.7rem;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  color: white;
+  background: var(--teal);
+  cursor: pointer;
+  font-weight: 750;
+}
+.auth-card button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.auth-card .text-button {
+  margin-top: 1rem;
+  color: var(--teal-dark);
+  background: transparent;
+  text-decoration: underline;
 }
 
 a:focus-visible,

@@ -64,7 +64,7 @@ public class InvitationAcceptanceService {
                     0,
                     0), now);
         } catch (DataIntegrityViolationException duplicateOrConstraintFailure) {
-            throw new InvitationRejectedException();
+            throw new LoginUnavailableException();
         }
         if (!repository.consumeInvitation(invitation.id(), invitation.version(), now)) {
             throw new InvitationRejectedException();

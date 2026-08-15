@@ -42,6 +42,10 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Unknown users perform a dummy password verification. Unknown, incorrect, pending, and disabled credentials share one generic failure.
 - Login is rate-limited before Argon2 by direct source address and a digest of normalized login. The bounded in-memory limiter is suitable only for the initial single-instance household deployment and deliberately ignores forwarded headers.
 - Authentication audit rows contain only event ID, type, outcome, optional known account ID, and time. They never contain login names, passwords, tokens, session IDs, user agents, or network addresses. Persistence is best-effort and retention remains an operations decision.
+- MEMBER invitations are created only by an authenticated active ADMIN and returned once. Browser invitation links carry tokens in URL fragments, which are removed immediately and never persisted in browser storage.
+- Invitation acceptance is CSRF-protected, rate-limited before lookup and Argon2, and never authenticates automatically. Invalid invitation states share a generic response.
+- Password setting checks a validated offline digest blocklist derived from SecLists 2026.1 plus account-context terms. Missing or corrupt blocklist data prevents startup; no password information leaves the application.
+- Anonymous CSRF issuance is bounded before session creation. Existing sessions are not charged as new anonymous sessions.
 
 ## AI privacy
 

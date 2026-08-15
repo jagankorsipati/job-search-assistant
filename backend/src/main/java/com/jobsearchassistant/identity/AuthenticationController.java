@@ -31,9 +31,13 @@ import org.springframework.security.core.Authentication;
 @RequestMapping("/api/auth")
 @ConditionalOnProperty(name = "identity.persistence.enabled", havingValue = "true", matchIfMissing = true)
 class AuthenticationController {
-    record LoginRequest(String loginName, char[] password) { }
+    record LoginRequest(String loginName, char[] password) {
+        @Override public String toString() { return "LoginRequest[redacted]"; }
+    }
     record IdentityResponse(java.util.UUID accountId, AccountRole role) { }
-    record CsrfResponse(String token, String headerName, String parameterName) { }
+    record CsrfResponse(String token, String headerName, String parameterName) {
+        @Override public String toString() { return "CsrfResponse[token=redacted]"; }
+    }
 
     private static final Map<String, Object> AUTHENTICATION_FAILED =
             Map.of("title", "Authentication failed", "status", 401);

@@ -12,14 +12,18 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.SecurityContextHolderFilter;
+import org.springframework.security.web.csrf.CsrfFilter;
 
 @Configuration(proxyBeanMethods = false)
 class WebSecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http,
-            ObjectProvider<SessionValidationFilter> validationFilter) throws Exception {
+            ObjectProvider<SessionValidationFilter> validationFilter,
+            AnonymousCsrfRateLimitFilter csrfRateLimitFilter) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/health", "/api/auth/csrf", "/api/auth/login").permitAll()
+                        .requestMatchers("/actuator/health", "/api/auth/csrf", "/api/auth/login",
+                                "/api/invitations/accept").permitAll()
+                        .requestMatchers("/api/admin/invitations").hasRole("ADMIN")
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         .anyRequest().denyAll())
                 .sessionManagement(session -> session
@@ -39,6 +43,7 @@ class WebSecurityConfiguration {
         if (filter != null) {
             http.addFilterAfter(filter, SecurityContextHolderFilter.class);
         }
+        http.addFilterBefore(csrfRateLimitFilter, CsrfFilter.class);
         return http.build();
     }
 
