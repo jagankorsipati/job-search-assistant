@@ -16,7 +16,8 @@ Each milestone should be independently reviewable and committable.
 ## Phase 2 — Identity and isolation
 
 - Phase 2A complete: framework-independent account and invitation lifecycles, constrained identity tables, and documented security boundaries
-- Accounts, password authentication, secure sessions
+- Phase 2B complete: transactional first-administrator bootstrap, Argon2id credentials, MEMBER invitations, JDBC persistence, and generic credential verification
+- Phase 2C: secure HTTP authentication, server-managed sessions, CSRF protection, rate limiting, and authentication audit events
 - Owner-scoped persistence and authorization integration tests
 - Minimal audit events
 

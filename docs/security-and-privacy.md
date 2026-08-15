@@ -28,7 +28,17 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Owner identity is derived from the authenticated server-side context. Browser-supplied owner identifiers are never trusted.
 - The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
 - Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
-- Later browser sessions will use Secure, HttpOnly, SameSite cookies, rotation, and CSRF protection. Exact session and CSRF mechanics remain Phase 2B work.
+- Later browser sessions will use Secure, HttpOnly, SameSite cookies, rotation, and CSRF protection. Exact session and CSRF mechanics remain Phase 2C work.
+
+## Credential and invitation controls
+
+- Passwords use self-describing Argon2id hashes with a 16-byte salt, 32-byte output, 19 MiB memory, two iterations, and parallelism one.
+- Passwords must contain 15 through 128 Unicode code points. They are not normalized or trimmed, and no character-class composition rules apply.
+- First-administrator bootstrap is disabled by default, requires explicit process-scoped operator configuration, serializes concurrent attempts, and permanently refuses after the first account exists.
+- Invitations contain 256 random bits, persist only a versioned SHA-256 digest, default to 24 hours, and are bounded between 15 minutes and seven days.
+- Invitation issue and acceptance are transactional. Acceptance locks the invitation and atomically creates the account and consumes the invitation.
+- Unknown users perform a dummy password verification. Unknown, incorrect, pending, and disabled credentials share one generic failure.
+- Phase 2B has no HTTP authentication surface. Rate limiting, secure sessions, CSRF protection, and authentication audit events are mandatory Phase 2C controls.
 
 ## AI privacy
 
@@ -56,7 +66,7 @@ V1 binds to the private network only. Remote access uses Tailscale or an equival
 
 ## Open decisions
 
-- Exact invitation lifetime and account-recovery proof
+- Account-recovery proof
 - Backup encryption mechanism
 - Session duration and reauthentication thresholds
-- First-administrator bootstrap mechanism and password hashing parameters
+- HTTP authentication rate limits, session rotation, and CSRF-token delivery

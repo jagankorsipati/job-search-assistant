@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2A — identity domain and persistence foundation complete. Individual invite-only account and invitation invariants are modeled without exposing registration, authentication, sessions, recovery, or administrator APIs. User-owned business entities and integrations remain unimplemented.
+Phase 2B — identity application services complete. The backend can explicitly bootstrap one administrator, issue and atomically accept secure MEMBER invitations, and verify Argon2id credentials without exposing HTTP authentication, sessions, recovery, or administrator APIs.
 
 ## Planned capabilities
 
@@ -109,6 +109,35 @@ Both commands preserve the named PostgreSQL volume. Deliberate volume deletion i
 
 Flyway is the only schema-management mechanism. Its managed/default schema and history table are both inside `job_search_assistant`, so future unqualified migration objects resolve there rather than in `public`. The initial migration establishes only that schema foundation and creates no business tables.
 
+### First-administrator bootstrap
+
+Bootstrap works only while the account table is empty and is disabled by default. Start PostgreSQL, then use a temporary PowerShell process from `backend/`:
+
+```powershell
+$env:IDENTITY_BOOTSTRAP_ENABLED = 'true'
+$env:IDENTITY_BOOTSTRAP_LOGIN = 'household.admin'
+$env:IDENTITY_BOOTSTRAP_DISPLAY_NAME = 'Household Administrator'
+$bootstrapSecret = Read-Host 'Administrator passphrase' -AsSecureString
+$bootstrapPointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($bootstrapSecret)
+try {
+    $env:IDENTITY_BOOTSTRAP_PASSWORD = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bootstrapPointer)
+}
+finally {
+    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bootstrapPointer)
+}
+.\mvnw.cmd spring-boot:run
+```
+
+After startup succeeds, stop the process immediately with Ctrl+C. Clear the process-scoped bootstrap data and restart normally:
+
+```powershell
+Remove-Item Env:IDENTITY_BOOTSTRAP_ENABLED, Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD
+Remove-Variable bootstrapSecret, bootstrapPointer -ErrorAction SilentlyContinue
+.\mvnw.cmd spring-boot:run
+```
+
+Never put bootstrap values in `.env`, command history, source control, or a reusable script. A second bootstrap attempt is refused, including concurrent attempts. Phase 2B exposes no registration, login, or invitation HTTP routes.
+
 ### Tests and verification
 
 From the repository root, run the complete Windows foundation check:
@@ -144,4 +173,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2B: safely bootstrap the first administrator and implement reviewed password authentication, sessions, and CSRF protection. Owner-scoped business persistence, AI, and job scraping remain out of scope.
+Phase 2C: add secure HTTP authentication and server-managed sessions, including generic responses, session rotation, CSRF protection, mandatory rate limiting, and security-event auditing. Owner-scoped business persistence, AI, and job scraping remain out of scope.

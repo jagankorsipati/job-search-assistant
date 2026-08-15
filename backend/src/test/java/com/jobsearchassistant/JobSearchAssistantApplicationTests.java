@@ -14,7 +14,8 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
                 + "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
-                + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
+                + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration",
+        "identity.persistence.enabled=false"
 })
 @AutoConfigureMockMvc
 class JobSearchAssistantApplicationTests {
