@@ -10,3 +10,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-004](ADR-004-household-identity.md)                 | Use invite-only accounts with private workspaces            | Accepted |
 | [ADR-005](ADR-005-identity-foundation.md)                | Establish the identity persistence and lifecycle foundation | Accepted |
 | [ADR-006](ADR-006-identity-credentials-and-bootstrap.md) | Secure identity credentials, bootstrap, and invitations     | Accepted |
+| [ADR-007](ADR-007-stateful-browser-authentication.md)    | Use stateful PostgreSQL-backed browser authentication        | Accepted |

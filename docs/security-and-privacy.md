@@ -28,7 +28,9 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Owner identity is derived from the authenticated server-side context. Browser-supplied owner identifiers are never trusted.
 - The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
 - Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
-- Later browser sessions will use Secure, HttpOnly, SameSite cookies, rotation, and CSRF protection. Exact session and CSRF mechanics remain Phase 2C work.
+- Browser sessions are opaque and PostgreSQL-backed. Cookies are Secure by default, HttpOnly, and SameSite=Strict; successful login rotates the anonymous CSRF session ID. Direct local HTTP development must explicitly set `SESSION_COOKIE_SECURE=false`.
+- Sessions expire after 30 minutes idle and an independently enforced 12-hour absolute lifetime. Every authenticated request revalidates active status, role, and credential version against PostgreSQL.
+- The SPA obtains a session-backed token from `/api/auth/csrf` and sends it in the returned header. The session cookie is never JavaScript-readable.
 
 ## Credential and invitation controls
 
@@ -38,7 +40,8 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Invitations contain 256 random bits, persist only a versioned SHA-256 digest, default to 24 hours, and are bounded between 15 minutes and seven days.
 - Invitation issue and acceptance are transactional. Acceptance locks the invitation and atomically creates the account and consumes the invitation.
 - Unknown users perform a dummy password verification. Unknown, incorrect, pending, and disabled credentials share one generic failure.
-- Phase 2B has no HTTP authentication surface. Rate limiting, secure sessions, CSRF protection, and authentication audit events are mandatory Phase 2C controls.
+- Login is rate-limited before Argon2 by direct source address and a digest of normalized login. The bounded in-memory limiter is suitable only for the initial single-instance household deployment and deliberately ignores forwarded headers.
+- Authentication audit rows contain only event ID, type, outcome, optional known account ID, and time. They never contain login names, passwords, tokens, session IDs, user agents, or network addresses. Persistence is best-effort and retention remains an operations decision.
 
 ## AI privacy
 
@@ -68,5 +71,5 @@ V1 binds to the private network only. Remote access uses Tailscale or an equival
 
 - Account-recovery proof
 - Backup encryption mechanism
-- Session duration and reauthentication thresholds
-- HTTP authentication rate limits, session rotation, and CSRF-token delivery
+- Authentication-event retention
+- Multi-instance/shared authentication rate limiting if deployment topology changes

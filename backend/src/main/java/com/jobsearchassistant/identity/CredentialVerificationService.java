@@ -20,6 +20,11 @@ public class CredentialVerificationService {
     }
 
     public AuthenticatedIdentity verify(String loginName, char[] password) {
+        SessionPrincipal principal = verifyForSession(loginName, password);
+        return new AuthenticatedIdentity(new AccountId(principal.accountId()), principal.role());
+    }
+
+    SessionPrincipal verifyForSession(String loginName, char[] password) {
         if (password == null || Character.codePointCount(password, 0, password.length) > PasswordPolicy.MAXIMUM_CODE_POINTS) {
             passwordHasher.matches(DUMMY_PASSWORD, dummyHash);
             throw new AuthenticationFailedException();
@@ -38,6 +43,6 @@ public class CredentialVerificationService {
         if (account == null || !passwordMatches || !account.status().canAuthenticate()) {
             throw new AuthenticationFailedException();
         }
-        return new AuthenticatedIdentity(account.id(), account.role());
+        return new SessionPrincipal(account.id().value(), account.role(), account.credentialVersion());
     }
 }

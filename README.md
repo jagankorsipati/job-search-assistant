@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2B — identity application services complete. The backend can explicitly bootstrap one administrator, issue and atomically accept secure MEMBER invitations, and verify Argon2id credentials without exposing HTTP authentication, sessions, recovery, or administrator APIs.
+Phase 2C1 — secure backend authentication complete. The backend provides CSRF-protected login/logout, current-session inspection, PostgreSQL-backed sessions, bounded login rate limiting, per-request account validation, and minimal authentication audit events. Invitation HTTP flows and frontend authentication remain deferred to Phase 2C2.
 
 ## Planned capabilities
 
@@ -82,6 +82,16 @@ Get-Content ..\.env | Where-Object { $_ -match '^[^#][^=]*=' } | ForEach-Object 
 .\mvnw.cmd spring-boot:run
 ```
 
+For direct local HTTP development only, set the explicit cookie exception before starting the backend:
+
+```powershell
+$env:SESSION_COOKIE_SECURE = 'false'
+```
+
+Secure cookies default to `true` and must remain enabled behind HTTPS. Sessions expire after 30 minutes idle and after 12 hours absolute by default. Optional operational overrides are `SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT`; both must be positive. Do not add authentication secrets to `.env`.
+
+The SPA authentication handshake is `GET /api/auth/csrf`, followed by `POST /api/auth/login` with the returned CSRF header. `GET /api/auth/me` inspects the current session and `POST /api/auth/logout` requires CSRF. Login failure bodies do not distinguish unknown, incorrect-password, pending, or disabled accounts. Bootstrap and invitation services have no HTTP endpoints.
+
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
 Install and run the frontend from a third PowerShell process, after PostgreSQL and the backend are healthy:
@@ -136,7 +146,7 @@ Remove-Variable bootstrapSecret, bootstrapPointer -ErrorAction SilentlyContinue
 .\mvnw.cmd spring-boot:run
 ```
 
-Never put bootstrap values in `.env`, command history, source control, or a reusable script. A second bootstrap attempt is refused, including concurrent attempts. Phase 2B exposes no registration, login, or invitation HTTP routes.
+Never put bootstrap values in `.env`, command history, source control, or a reusable script. A second bootstrap attempt is refused, including concurrent attempts. Bootstrap and invitation services remain unavailable over HTTP in Phase 2C1.
 
 ### Tests and verification
 
@@ -173,4 +183,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2C: add secure HTTP authentication and server-managed sessions, including generic responses, session rotation, CSRF protection, mandatory rate limiting, and security-event auditing. Owner-scoped business persistence, AI, and job scraping remain out of scope.
+Phase 2C2: add invitation HTTP flows and frontend authentication screens without exposing administrator account management broadly. Owner-scoped business persistence, AI, and job scraping remain out of scope.

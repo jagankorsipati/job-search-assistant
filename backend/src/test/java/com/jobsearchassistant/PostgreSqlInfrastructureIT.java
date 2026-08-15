@@ -52,7 +52,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2");
+                .containsExactly("1", "2", "3");
     }
 
     @Test
@@ -72,7 +72,9 @@ class PostgreSqlInfrastructureIT {
                         + "WHERE table_schema = 'job_search_assistant' AND table_name = 'household_invitation'",
                 String.class);
 
-        assertThat(tables).containsExactly("household_invitation", "user_account");
+        assertThat(tables).containsExactly(
+                "authentication_security_event", "household_invitation", "spring_session",
+                "spring_session_attributes", "user_account");
         assertThat(constraints).contains(
                 "uq_user_account_normalized_login_name",
                 "ck_user_account_role",
