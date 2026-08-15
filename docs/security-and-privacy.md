@@ -19,6 +19,17 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Explicit confirmation for deletion and export
 - Dependency and container scanning in CI
 
+## Identity authorization boundary
+
+- Public registration is prohibited; new household accounts require an expiring, single-use administrator invitation.
+- Invitation tokens are persisted only as one-way cryptographic hashes. Password hashes are opaque restricted values; neither passwords nor hashes may be logged or exposed.
+- Administrators may invite, disable, and assist with recovery, but cannot read another member's profile, résumé, jobs, documents, applications, or files by default.
+- Authentication establishes actor identity and never implies authorization to user-owned resources.
+- Owner identity is derived from the authenticated server-side context. Browser-supplied owner identifiers are never trusted.
+- The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
+- Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
+- Later browser sessions will use Secure, HttpOnly, SameSite cookies, rotation, and CSRF protection. Exact session and CSRF mechanics remain Phase 2B work.
+
 ## AI privacy
 
 - AI integration is optional and disabled without configuration.
@@ -45,7 +56,7 @@ V1 binds to the private network only. Remote access uses Tailscale or an equival
 
 ## Open decisions
 
-- Exact invitation expiry and account-recovery proof
+- Exact invitation lifetime and account-recovery proof
 - Backup encryption mechanism
 - Session duration and reauthentication thresholds
-- Whether administrators can disable accounts without reading content
+- First-administrator bootstrap mechanism and password hashing parameters

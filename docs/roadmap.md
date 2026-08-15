@@ -15,6 +15,7 @@ Each milestone should be independently reviewable and committable.
 
 ## Phase 2 — Identity and isolation
 
+- Phase 2A complete: framework-independent account and invitation lifecycles, constrained identity tables, and documented security boundaries
 - Accounts, password authentication, secure sessions
 - Owner-scoped persistence and authorization integration tests
 - Minimal audit events

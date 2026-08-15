@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 1 — runnable foundation complete. The modular backend, PostgreSQL/Flyway infrastructure, React shell, and repository-wide verification are covered by local checks and three parallel CI jobs. Authentication, business entities and APIs, and integrations remain unimplemented.
+Phase 2A — identity domain and persistence foundation complete. Individual invite-only account and invitation invariants are modeled without exposing registration, authentication, sessions, recovery, or administrator APIs. User-owned business entities and integrations remain unimplemented.
 
 ## Planned capabilities
 
@@ -144,4 +144,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2: identity and isolation, beginning with accounts, password authentication, secure sessions, and owner-scoped persistence. AI and job scraping remain out of scope.
+Phase 2B: safely bootstrap the first administrator and implement reviewed password authentication, sessions, and CSRF protection. Owner-scoped business persistence, AI, and job scraping remain out of scope.
