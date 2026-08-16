@@ -162,5 +162,14 @@ jobs:
         shell: pwsh
         run: ./scripts/run-browser-e2e.ps1
 
-      # Screenshots, traces, video, and HTML reports are deliberately disabled: identity-flow
-      # failure artifacts can retain invitation fragments, cookies, or credentials.
+      - name: Upload sanitized browser diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-e2e-sanitized-diagnostics-${{ github.run_id }}
+          path: frontend/test-results/sanitized/diagnostics.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
+      # Screenshots, traces, video, browser profiles, and HTML reports remain disabled because
+      # identity-flow artifacts can retain secrets. Only the script's sanitized text is uploaded.

@@ -192,7 +192,7 @@ cd ..
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-browser-e2e.ps1
 ```
 
-GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Compose smoke, and browser identity E2E jobs. The browser job uses a tmpfs-backed disposable database and process-only test credentials. Playwright screenshots, traces, videos, and HTML reports are disabled because identity-flow failure artifacts could retain invitation fragments, cookies, or credentials; ordinary console failure output remains available. All Actions are pinned to immutable commit SHAs.
+GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Compose smoke, and browser identity E2E jobs. The browser job uses a tmpfs-backed disposable database and process-only test credentials. Playwright screenshots, traces, videos, browser profiles, raw error contexts, and HTML reports are disabled or discarded because identity-flow failure artifacts could retain invitation fragments, cookies, or credentials. On failure, CI retains only sanitized text containing process/readiness state, filtered startup errors, PostgreSQL health and active-administrator count, and safe Playwright status/locator context. All Actions are pinned to immutable commit SHAs.
 
 ## Next milestone
 

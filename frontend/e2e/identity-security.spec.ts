@@ -15,7 +15,33 @@ async function login(page: Page, loginName: string, password: string) {
   ).toBeVisible();
   await page.getByLabel('Login name').fill(loginName);
   await page.getByLabel('Password').fill(password);
+  const loginResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/auth/login' &&
+      response.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Sign in' }).click();
+  const loginResponse = await loginResponsePromise;
+  let genericCode = 'none';
+  try {
+    const body = (await loginResponse.json()) as { code?: unknown };
+    if (typeof body.code === 'string' && /^[a-z0-9_-]{1,64}$/.test(body.code)) {
+      genericCode = body.code;
+    }
+  } catch {
+    // A successful response need not provide a generic error code.
+  }
+  const safeResponseSummary = `Login response: HTTP ${loginResponse.status()}, generic code ${genericCode}`;
+  console.info(safeResponseSummary);
+  expect.soft(loginResponse.status(), safeResponseSummary).toBe(200);
+
+  const genericLoginAlert = page.getByRole('alert');
+  const genericLoginErrorDisplayed = await genericLoginAlert
+    .filter({ hasText: 'Login name or password is incorrect.' })
+    .isVisible();
+  expect
+    .soft(genericLoginErrorDisplayed, 'Generic login error alert was displayed after login.')
+    .toBeFalsy();
   await expect(page.getByRole('heading', { name: 'Your job-search workspace.' })).toBeVisible();
 }
 

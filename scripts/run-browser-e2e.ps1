@@ -13,13 +13,18 @@ $frontendRoot = Join-Path $repositoryRoot 'frontend'
 $composeFile = Join-Path $frontendRoot 'e2e\compose.yaml'
 $jarPath = Join-Path $backendRoot 'target\backend-0.0.1-SNAPSHOT.jar'
 $projectName = 'job-search-assistant-e2e'
+$diagnosticRoot = Join-Path $frontendRoot 'test-results\sanitized'
+$diagnosticPath = Join-Path $diagnosticRoot 'diagnostics.txt'
 $temporaryRoot = Join-Path ([IO.Path]::GetTempPath()) ("job-search-assistant-e2e-" + [Guid]::NewGuid())
-$backendOutput = Join-Path $temporaryRoot 'backend.log'
-$backendError = Join-Path $temporaryRoot 'backend-error.log'
+$bootstrapOutput = Join-Path $temporaryRoot 'bootstrap-backend.log'
+$bootstrapError = Join-Path $temporaryRoot 'bootstrap-backend-error.log'
+$backendOutput = Join-Path $temporaryRoot 'normal-backend.log'
+$backendError = Join-Path $temporaryRoot 'normal-backend-error.log'
 $frontendOutput = Join-Path $temporaryRoot 'frontend.log'
 $frontendError = Join-Path $temporaryRoot 'frontend-error.log'
 $backendProcess = $null
 $frontendProcess = $null
+$succeeded = $false
 
 function Invoke-Checked {
     param([string]$Executable, [string[]]$CommandArguments, [string]$WorkingDirectory)
@@ -45,8 +50,93 @@ function Wait-HttpReady {
     throw "Timed out waiting for $Url."
 }
 
+function Get-AdministratorCount {
+    $query = "SELECT count(*) FROM job_search_assistant.user_account WHERE role = 'ADMIN' AND status = 'ACTIVE';"
+    $result = & docker compose -p $projectName -f $composeFile exec -T postgres-e2e `
+        psql -U job_search_assistant_e2e -d job_search_assistant_e2e -Atc $query 2>$null
+    if ($LASTEXITCODE -ne 0) { return -1 }
+    $count = 0
+    if ([int]::TryParse(($result | Select-Object -Last 1), [ref]$count)) { return $count }
+    return -1
+}
+
+function Wait-AdministratorBootstrap {
+    param([Diagnostics.Process]$Process, [int]$Attempts = 120)
+    for ($attempt = 1; $attempt -le $Attempts; $attempt++) {
+        $Process.Refresh()
+        if ($Process.HasExited) { throw 'Bootstrap backend exited before the administrator transaction committed.' }
+        if ((Get-AdministratorCount) -eq 1) { return }
+        Start-Sleep -Milliseconds 500
+    }
+    throw 'Timed out waiting for the committed active administrator row.'
+}
+
+function Get-ProcessState {
+    param([Diagnostics.Process]$Process)
+    if ($null -eq $Process) { return 'not started' }
+    $Process.Refresh()
+    return $(if ($Process.HasExited) { "exited ($($Process.ExitCode))" } else { 'running' })
+}
+
+function Get-SafeLogTail {
+    param([string]$Path, [int]$Count = 30)
+    if (-not (Test-Path -LiteralPath $Path)) { return @('[no log file]') }
+    $relevant = Get-Content -LiteralPath $Path | Where-Object {
+        $_ -match '(?i)(started|starting|ready|flyway|migration|tomcat|hikari|bootstrap|warn|error|exception|failed|shutdown)'
+    } | Select-Object -Last $Count
+    if (-not $relevant) { return @('[no relevant lines]') }
+    return $relevant | ForEach-Object {
+        $_ -replace '(?i)(password|token|cookie|csrf|session)[=: ]+\S+', '$1=[REDACTED]' `
+           -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
+           -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
+           -replace '\b[0-9a-f]{8}-[0-9a-f-]{27,}\b', '[REDACTED-ID]'
+    }
+}
+
+function Add-DiagnosticSection {
+    param([string]$Title, [object[]]$Lines)
+    Add-Content -LiteralPath $diagnosticPath -Value "`n[$Title]" -Encoding UTF8
+    Add-Content -LiteralPath $diagnosticPath -Value $Lines -Encoding UTF8
+}
+
+function Write-SafeDiagnostics {
+    param([string]$FailureMessage)
+    $rawPlaywrightRoot = Join-Path $frontendRoot 'test-results'
+    $safePlaywrightLines = @()
+    if (Test-Path -LiteralPath $rawPlaywrightRoot) {
+        $safePlaywrightLines = Get-ChildItem -LiteralPath $rawPlaywrightRoot -Recurse -File -Filter 'error-context.md' |
+            ForEach-Object { Get-Content -LiteralPath $_.FullName } |
+            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+identity-security\.spec\.ts)' } |
+            ForEach-Object {
+                $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
+                   -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
+                   -replace '\b[0-9a-f]{8}-[0-9a-f-]{27,}\b', '[REDACTED-ID]'
+            }
+    }
+    Remove-Item -LiteralPath $rawPlaywrightRoot -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Force -Path $diagnosticRoot | Out-Null
+    Set-Content -LiteralPath $diagnosticPath -Value 'Sanitized browser E2E diagnostics' -Encoding UTF8
+    Add-DiagnosticSection 'failure' @($FailureMessage)
+    Add-DiagnosticSection 'processes' @(
+        "backend=$(Get-ProcessState $backendProcess)",
+        "frontend=$(Get-ProcessState $frontendProcess)"
+    )
+    Add-DiagnosticSection 'bootstrap backend stdout' @(Get-SafeLogTail $bootstrapOutput)
+    Add-DiagnosticSection 'bootstrap backend stderr' @(Get-SafeLogTail $bootstrapError)
+    Add-DiagnosticSection 'normal backend stdout' @(Get-SafeLogTail $backendOutput)
+    Add-DiagnosticSection 'normal backend stderr' @(Get-SafeLogTail $backendError)
+    Add-DiagnosticSection 'vite stdout' @(Get-SafeLogTail $frontendOutput)
+    Add-DiagnosticSection 'vite stderr' @(Get-SafeLogTail $frontendError)
+    $containerState = & docker inspect --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' `
+        "$projectName-postgres-e2e-1" 2>$null
+    if ($LASTEXITCODE -ne 0) { $containerState = 'container unavailable' }
+    Add-DiagnosticSection 'postgres' @($containerState, "active_admin_count=$(Get-AdministratorCount)")
+    Add-DiagnosticSection 'playwright context' $(if ($safePlaywrightLines) { @($safePlaywrightLines) } else { @('[no safe context lines]') })
+    Get-Content -LiteralPath $diagnosticPath
+}
+
 function Start-Backend {
-    param([bool]$Bootstrap)
+    param([bool]$Bootstrap, [string]$StandardOutput, [string]$StandardError)
     $env:DB_HOST = '127.0.0.1'
     $env:DB_PORT = '55433'
     $env:DB_NAME = 'job_search_assistant_e2e'
@@ -63,9 +153,12 @@ function Start-Backend {
         Remove-Item Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD -ErrorAction SilentlyContinue
     }
     return Start-Process -FilePath 'java' -ArgumentList @('-jar', $jarPath) -WorkingDirectory $backendRoot `
-        -RedirectStandardOutput $backendOutput -RedirectStandardError $backendError -PassThru
+        -RedirectStandardOutput $StandardOutput -RedirectStandardError $StandardError -PassThru
 }
 
+Remove-Item -LiteralPath (Join-Path $frontendRoot 'test-results'), `
+    (Join-Path $frontendRoot 'playwright-report'), (Join-Path $frontendRoot 'blob-report') `
+    -Recurse -Force -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Path $temporaryRoot | Out-Null
 try {
     if (-not (Test-Path -LiteralPath $jarPath)) {
@@ -81,12 +174,14 @@ try {
     Invoke-Checked 'docker' @('compose', '-p', $projectName, '-f', $composeFile, 'up', '-d', '--wait') $repositoryRoot
 
     Write-Host 'Bootstrapping the one-time E2E administrator.' -ForegroundColor Cyan
-    $backendProcess = Start-Backend $true
+    $backendProcess = Start-Backend $true $bootstrapOutput $bootstrapError
     Wait-HttpReady 'http://127.0.0.1:8080/actuator/health' $backendProcess
+    Wait-AdministratorBootstrap $backendProcess
+    Write-Host 'Committed active administrator row observed.' -ForegroundColor Cyan
     Stop-Process -Id $backendProcess.Id -Force
     $backendProcess.WaitForExit()
     Write-Host 'Restarting backend with bootstrap disabled.' -ForegroundColor Cyan
-    $backendProcess = Start-Backend $false
+    $backendProcess = Start-Backend $false $backendOutput $backendError
     Wait-HttpReady 'http://127.0.0.1:8080/actuator/health' $backendProcess
 
     $npmExecutable = if ($env:OS -eq 'Windows_NT') { 'npm.cmd' } else { 'npm' }
@@ -98,11 +193,10 @@ try {
 
     Write-Host 'Running Playwright identity security journeys.' -ForegroundColor Cyan
     Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
+    $succeeded = $true
 }
 catch {
-    Write-Output ("Browser E2E failed: " + $_.Exception.Message)
-    if (Test-Path $backendError) { Get-Content $backendError | Select-Object -Last 40 }
-    if (Test-Path $frontendError) { Get-Content $frontendError | Select-Object -Last 40 }
+    Write-SafeDiagnostics ("Browser E2E failed: " + $_.Exception.Message)
     throw
 }
 finally {
@@ -117,9 +211,11 @@ finally {
     $ErrorActionPreference = 'Continue'
     & docker compose -p $projectName -f $composeFile down --volumes --remove-orphans *> $null
     $ErrorActionPreference = $previousErrorAction
-    Remove-Item -LiteralPath (Join-Path $frontendRoot 'test-results'), `
-        (Join-Path $frontendRoot 'playwright-report'), (Join-Path $frontendRoot 'blob-report') `
-        -Recurse -Force -ErrorAction SilentlyContinue
+    if ($succeeded) {
+        Remove-Item -LiteralPath (Join-Path $frontendRoot 'test-results'), `
+            (Join-Path $frontendRoot 'playwright-report'), (Join-Path $frontendRoot 'blob-report') `
+            -Recurse -Force -ErrorAction SilentlyContinue
+    }
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
