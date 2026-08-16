@@ -1,0 +1,17 @@
+services:
+  postgres-e2e:
+    image: postgres:17.10
+    environment:
+      POSTGRES_DB: job_search_assistant_e2e
+      POSTGRES_USER: job_search_assistant_e2e
+      POSTGRES_PASSWORD: e2e_only_not_a_secret
+    ports:
+      - '127.0.0.1:55433:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U job_search_assistant_e2e -d job_search_assistant_e2e']
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s

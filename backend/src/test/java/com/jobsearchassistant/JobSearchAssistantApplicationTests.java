@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.boot.autoconfigure.web.ServerProperties;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -32,6 +33,9 @@ class JobSearchAssistantApplicationTests {
     @Qualifier("requestMappingHandlerMapping")
     private RequestMappingHandlerMapping mappings;
 
+    @Autowired
+    private ServerProperties serverProperties;
+
     @Test
     void applicationContextLoads() {
     }
@@ -50,5 +54,13 @@ class JobSearchAssistantApplicationTests {
         assertThat(mappings.getHandlerMethods().keySet())
                 .noneMatch(mapping -> mapping.getPatternValues().stream()
                         .anyMatch(pattern -> pattern.startsWith("/test/owned-resources")));
+    }
+
+    @Test
+    void sessionCookieRemainsSecureByDefault() {
+        assertThat(serverProperties.getServlet().getSession().getCookie().getName()).isEqualTo("JSA_SESSION");
+        assertThat(serverProperties.getServlet().getSession().getCookie().getHttpOnly()).isTrue();
+        assertThat(serverProperties.getServlet().getSession().getCookie().getSecure()).isTrue();
+        assertThat(serverProperties.getServlet().getSession().getCookie().getSameSite()).hasToString("STRICT");
     }
 }

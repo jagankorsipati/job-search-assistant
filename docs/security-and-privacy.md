@@ -17,7 +17,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Secrets supplied outside source control
 - Logs exclude document content, tokens, passwords, and personal details
 - Explicit confirmation for deletion and export
-- Dependency and container scanning in CI
+- Locked dependencies, immutable CI action pins, and reviewed informational dependency audits
 
 ## Identity authorization boundary
 
@@ -77,9 +77,50 @@ V1 binds to the private network only. Remote access uses Tailscale or an equival
 - Sensitive data in logs or health endpoints
 - Incomplete account deletion
 
+## Phase 2 final threat-model review
+
+Classification is intentionally conservative: “mitigated” means controls and repeatable evidence exist, not that risk is eliminated. Detailed implementation and test links are in the [Phase 2 verification matrix](security/phase-2-verification.md).
+
+| Threat | Asset and boundary | Mitigation and verification evidence | Residual risk | Classification |
+| --- | --- | --- | --- | --- |
+| Credential stuffing / guessing | Credentials; anonymous login boundary | Argon2id, generic failures, dummy verification, bounded source/login limiter; unit, PostgreSQL HTTP, and browser disabled-login tests | In-memory limits reset and are per instance; Argon2 remains a DoS cost | Mitigated for one instance; distributed control deferred |
+| Login-name enumeration | Household identities; login and invitation acceptance | Generic login response/timing work and no public directory; HTTP tests | Invitation acceptance can report an unavailable login after possession of a valid invite | Mitigated |
+| Invitation guessing, reuse, leakage, expiration | One-time bearer token; administrator-to-browser transfer | 256-bit tokens, hash-only persistence, expiry/locking/single use, fragment removal, generic rejection; lifecycle, HTTP, and browser tests | Recipient/channel or compromised browser can leak plaintext before use | Mitigated; private transfer required |
+| CSRF | Authenticated browser session | SameSite=Strict cookie plus session-backed CSRF token; HTTP and browser missing-token tests | Browser compromise defeats browser controls | Mitigated |
+| Session fixation | Session identifier | Spring Security rotation plus browser pre/post-login cookie comparison | Stolen post-login session remains usable until invalidated/expired | Mitigated |
+| Session theft | Opaque session cookie | HttpOnly, Secure default, SameSite=Strict, server-side state, idle/absolute expiry, logout | TLS and host security are deployment responsibilities | Deployment prerequisite |
+| Stale or disabled-account sessions | Account/session state | Per-request status/role/credential-version validation and UUID-indexed revocation; integration and multi-context browser tests | Database outage causes application unavailability | Mitigated |
+| Privilege escalation | ADMIN operations | Server session role, ADMIN endpoint rules, MEMBER-only transition invariant; controller/integration/browser tests | Compromised administrator can administer access | Mitigated within designed role |
+| Administrator abuse | Member privacy | ADMIN has no ownership bypass; narrow actor interface and owner-scoped repositories/tests | Administrator controls host/database and can access raw storage | Accepted for trusted household operator; host hardening required |
+| Cross-user private-resource access | Future career data | Server-derived actor UUID, owner predicate contract, identical missing/non-owned result; PostgreSQL isolation tests | Each future repository must adopt the contract; no PostgreSQL RLS | Mitigated contract; RLS deferred |
+| Browser-supplied owner IDs | Authorization boundary | Ownership fixture ignores/rejects caller identity and derives actor server-side | Future code regression remains possible | Mitigated by architecture tests and reusable fixture |
+| Sensitive values in URLs, logs, errors, audit, storage | Tokens, credentials, sessions, personal data | Fragment capture/removal, redacted request records, generic errors, minimal audit columns, no browser storage; code review and browser assertions | Browser history before script execution and operator-level process inspection | Mitigated; private transfer remains required |
+| Blocklist tampering | Password policy resource / upstream supply chain | Immutable 40-character commit, SHA-256, exact counts, sorted/unique validation, fail-closed startup | SHA-256 pin update review can be compromised | Mitigated with manual update review |
+| Forwarded-header spoofing | Rate-limit source identity | Uses direct servlet remote address and does not enable forwarded-header trust | Reverse proxy deployment needs an explicit trusted-proxy design | Mitigated locally; deployment prerequisite |
+| Database exposure | Credentials, sessions, audit | Compose binds PostgreSQL to loopback; deployment guide forbids LAN/public port | Host compromise and weak external credentials | Deployment prerequisite |
+| Insecure-cookie deployment | Session confidentiality | Secure defaults to true and configuration-level regression test; local E2E override is process-only | HTTP deployment becomes unusable rather than silently secure | Mitigated default; HTTPS prerequisite |
+| Audit overcollection / unlimited retention | Security metadata | Minimal UUID/type/outcome/time schema, 90-day default, bounded/batched stable cleanup and index; retention tests/review | Cleanup failure can temporarily grow data | Mitigated with operator monitoring |
+| Multi-instance limiter limitations | Authentication availability | Bounded in-memory keys and documented single-instance topology | No coordinated limits across instances | Deferred |
+| Dependency / supply-chain risk | Build and runtime | Lockfile/wrappers, SHA-pinned Actions, deterministic builds, informational audits | Registries and upstream artifacts remain trusted; advisory services can be unavailable | Accepted with update process |
+| Argon2/session-creation denial of service | CPU, memory, database | Pre-Argon2 rate limits, bounded anonymous CSRF issuance and key maps | Distributed attacks and Raspberry Pi capacity are untested | Accepted for private single instance; Pi benchmark prerequisite |
+
 ## Open decisions
 
 - Account-recovery proof
 - Backup encryption mechanism
-- Authentication-event retention
 - Multi-instance/shared authentication rate limiting if deployment topology changes
+
+## Audit-retention operations
+
+Authentication security events default to 90 days; configuration is rejected outside 30–365 days. Cleanup defaults to 500 rows per run and is rejected outside 50–5,000. The scheduled task defaults to every six hours, deletes in stable `(occurred_at, event_id)` order, uses `authentication_security_event_retention_ix`, and contains failures so cleanup cannot stop the application. Its SQL targets only `authentication_security_event`; accounts, invitations, sessions, and future private data cannot be deleted by it.
+
+The table contains event UUID, constrained type/outcome, optional actor/target account UUIDs, and time only—never passwords, hashes, invitation or CSRF tokens, session IDs, IP addresses, user agents, bodies, login names, or display names. Operators can check health without personal data:
+
+```sql
+SELECT count(*) AS expired_event_count,
+       min(occurred_at) AS oldest_event_time
+FROM job_search_assistant.authentication_security_event
+WHERE occurred_at < now() - interval '90 days';
+```
+
+Investigate repeated cleanup warnings and a growing expired count. Do not add sensitive request metadata for observability.

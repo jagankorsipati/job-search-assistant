@@ -98,6 +98,8 @@ Local household setup proceeds in this order: bootstrap the first administrator,
 
 Compromised-password screening is entirely offline. Provenance and the reviewed update command are documented in [the blocklist guide](docs/security/compromised-password-blocklist.md).
 
+The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
+
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
 Install and run the frontend from a third PowerShell process, after PostgreSQL and the backend are healthy:
@@ -162,7 +164,7 @@ From the repository root, run the complete Windows foundation check:
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify-foundation.ps1
 ```
 
-The script resolves the repository root from its own location, so it also works when invoked by absolute path from another directory. It stops at the first failure and always runs backend fast tests, frontend quality checks, and Compose configuration validation. When the Docker engine is available, it also runs the full backend verification with PostgreSQL Testcontainers; otherwise it reports a partial verification and the omitted Docker-dependent step.
+The script resolves the repository root from its own location, so it also works when invoked by absolute path from another directory. It stops at the first failure and always runs backend fast tests, frontend quality checks, and Compose configuration validation. When Docker is available, it also runs full backend verification and the disposable PostgreSQL-backed Playwright identity suite; otherwise it reports a partial verification. Browser E2E uses generated process-only credentials, sets `SESSION_COOKIE_SECURE=false` only for local loopback HTTP, and never uses or deletes the developer database volume. That cookie override is unsuitable for any LAN-accessible or deployed environment.
 
 ```powershell
 # Fast context and module-boundary tests; Docker is not required
@@ -183,10 +185,15 @@ npm.cmd run lint
 npm.cmd run typecheck
 npm.cmd run format:check
 npm.cmd run build
+
+# Full-stack browser identity security suite; Docker and installed Chromium are required
+npx.cmd playwright install chromium
+cd ..
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run-browser-e2e.ps1
 ```
 
-GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQL Compose smoke jobs. The backend and infrastructure jobs require Docker on the runner; the frontend job does not. Test reports are retained as failure diagnostics, while successful runs do not create unnecessary report artifacts.
+GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Compose smoke, and browser identity E2E jobs. The browser job uses a tmpfs-backed disposable database and process-only test credentials. Playwright screenshots, traces, videos, and HTML reports are disabled because identity-flow failure artifacts could retain invitation fragments, cookies, or credentials; ordinary console failure output remains available. All Actions are pinned to immutable commit SHAs.
 
 ## Next milestone
 
-Phase 2E2: perform the final Phase 2 security verification and release checkpoint. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 3: implement the candidate profile and career-fact foundation while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.

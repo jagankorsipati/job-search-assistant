@@ -13,7 +13,7 @@ Each milestone should be independently reviewable and committable.
 - Phase 1C complete: Node.js 24 LTS, Vite React/TypeScript shell, backend health proxy/client, responsive accessible styling, and frontend quality gates
 - Phase 1D complete: SHA-pinned GitHub Actions for backend, frontend, and PostgreSQL infrastructure; repository formatting conventions; and a Windows foundation verifier
 
-## Phase 2 — Identity and isolation
+## Phase 2 — Identity and isolation (complete)
 
 - Phase 2A complete: framework-independent account and invitation lifecycles, constrained identity tables, and documented security boundaries
 - Phase 2B complete: transactional first-administrator bootstrap, Argon2id credentials, MEMBER invitations, JDBC persistence, and generic credential verification
@@ -21,10 +21,10 @@ Each milestone should be independently reviewable and committable.
   - Phase 2C1 complete: secure HTTP login/logout/current-session endpoints, PostgreSQL-backed sessions, CSRF, rotation, idle and absolute expiry, per-request account validation, bounded rate limiting, and minimal authentication audit events
   - Phase 2C2 complete: invitation HTTP flows, offline compromised-password screening, anonymous-session exhaustion protection, and accessible frontend authentication
 - Phase 2D complete: server-derived actor context, narrow `identity::actor` named interface, owner-scoped SQL contract, and reusable PostgreSQL cross-user isolation tests using test-only resources
-- Phase 2E (in progress)
+- Phase 2E (complete)
   - Phase 2E1 complete: MEMBER-only administration, immediate UUID-indexed session revocation, credential-version invalidation, bounded authentication-audit retention, and minimal accessible administrator UI
-  - Phase 2E2 next: final Phase 2 security verification and release checkpoint
-- Minimal audit events
+  - Phase 2E2 complete: final threat model, immutable blocklist provenance, secure-cookie regression coverage, disposable full-stack Playwright identity verification, hosted browser CI, deployment checklist, and release-readiness matrix
+- Minimal audit events with bounded retention
 
 ## Phase 3 — Candidate profile
 

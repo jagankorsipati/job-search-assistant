@@ -61,6 +61,7 @@ if ($dockerAvailable) {
         -WorkingDirectory $backendRoot `
         -Executable (Join-Path $backendRoot 'mvnw.cmd') `
         -CommandArguments @('--batch-mode', '--no-transfer-progress', 'verify')
+
 }
 else {
     Write-Warning 'Docker Engine is unavailable; skipping backend Testcontainers integration tests. Start Docker Desktop and rerun for a complete foundation check.'
@@ -86,6 +87,14 @@ foreach ($check in $frontendChecks) {
         -WorkingDirectory $frontendRoot `
         -Executable 'npm.cmd' `
         -CommandArguments @('run', $check.Script)
+}
+
+if ($dockerAvailable) {
+    Invoke-CheckedCommand `
+        -Label 'Full-stack browser identity verification' `
+        -WorkingDirectory $repositoryRoot `
+        -Executable 'powershell.exe' `
+        -CommandArguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'run-browser-e2e.ps1'))
 }
 
 Write-Host "`nFoundation verification passed." -ForegroundColor Green
