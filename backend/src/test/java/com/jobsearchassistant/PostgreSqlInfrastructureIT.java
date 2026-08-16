@@ -52,7 +52,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3", "4");
+                .containsExactly("1", "2", "3", "4", "5");
     }
 
     @Test
@@ -84,6 +84,13 @@ class PostgreSqlInfrastructureIT {
                 "ck_household_invitation_state");
         assertThat(invitationColumns).contains("token_hash");
         assertThat(invitationColumns).filteredOn(column -> column.contains("token")).containsExactly("token_hash");
+        assertThat(jdbcTemplate.queryForList("SELECT column_name FROM information_schema.columns "
+                + "WHERE table_schema = 'job_search_assistant' "
+                + "AND table_name = 'authentication_security_event'", String.class))
+                .contains("target_account_id");
+        assertThat(jdbcTemplate.queryForList("SELECT indexname FROM pg_indexes "
+                + "WHERE schemaname = 'job_search_assistant'", String.class))
+                .contains("authentication_security_event_retention_ix");
     }
 
     @Test

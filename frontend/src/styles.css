@@ -98,6 +98,44 @@ input {
   cursor: pointer;
   font-weight: 750;
 }
+.admin-actions {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.account-list {
+  display: grid;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 0;
+  list-style: none;
+}
+.account-card {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: white;
+}
+.account-card h2 {
+  margin-top: 0;
+}
+.account-card dl {
+  display: grid;
+  gap: 0.4rem;
+}
+.account-card dl div {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 0.5rem;
+}
+.account-card dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+.account-card dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
 .auth-card button:disabled {
   opacity: 0.6;
   cursor: wait;

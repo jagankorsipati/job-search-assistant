@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2D complete. The backend now exposes a minimal server-derived actor contract and a tested owner-scoped authorization pattern with PostgreSQL defense in depth. Existing authentication, invitation, session, CSRF, rate-limit, and audit behavior remains intact. Phase 2 remains in progress pending Phase 2E security hardening and completion review.
+Phase 2E1 complete. Administrators can list minimal household account metadata and disable or reactivate MEMBER access without gaining private-workspace access. Disablement revokes UUID-indexed sessions immediately, credential versions provide defense in depth, and authentication audits have bounded retention. Phase 2 and Phase 2E remain in progress pending the Phase 2E2 security verification and release checkpoint.
 
 ## Planned capabilities
 
@@ -89,6 +89,8 @@ $env:SESSION_COOKIE_SECURE = 'false'
 ```
 
 Secure cookies default to `true` and must remain enabled behind HTTPS. Sessions expire after 30 minutes idle and after 12 hours absolute by default. Optional operational overrides are `SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT`; both must be positive. Do not add authentication secrets to `.env`.
+
+Administrators can manage MEMBER access at `/admin/accounts`. Disablement preserves private data, increments the credential version, and revokes all sessions; reactivation always requires a new login. Authentication audit events default to 90-day retention. Optional bounds-checked settings are `AUTH_AUDIT_RETENTION_PERIOD` (30â€“365 days), `AUTH_AUDIT_RETENTION_BATCH_SIZE` (50â€“5,000), and `AUTH_AUDIT_RETENTION_INTERVAL`.
 
 The SPA authentication handshake is `GET /api/auth/csrf`, followed by `POST /api/auth/login` with the returned CSRF header. `GET /api/auth/me` inspects the current session and `POST /api/auth/logout` requires CSRF. Login failure bodies do not distinguish unknown, incorrect-password, pending, or disabled accounts.
 
@@ -187,4 +189,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2E: perform identity security hardening and the Phase 2 completion review. Account administration, recovery, delegated access, AI, and job scraping remain out of scope.
+Phase 2E2: perform the final Phase 2 security verification and release checkpoint. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.

@@ -49,6 +49,9 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Invitation acceptance is CSRF-protected, rate-limited before lookup and Argon2, and never authenticates automatically. Invalid invitation states share a generic response.
 - Password setting checks a validated offline digest blocklist derived from SecLists 2026.1 plus account-context terms. Missing or corrupt blocklist data prevents startup; no password information leaves the application.
 - Anonymous CSRF issuance is bounded before session creation. Existing sessions are not charged as new anonymous sessions.
+- Account administration is restricted to active administrators and MEMBER targets. Disabling atomically increments credential and optimistic versions, then revokes every UUID-indexed Spring Session; reactivation never restores a session.
+- Administrators cannot disable or reactivate ADMIN accounts. Recovery, deletion, role changes, and additional administrator creation remain deferred.
+- Account-administration audits contain only event type, outcome, acting UUID, optional target UUID, and time. Authentication events default to 90-day retention, bounded to 30â€“365 days, with failure-contained cleanup in batches of 50â€“5,000.
 
 ## AI privacy
 

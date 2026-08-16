@@ -13,6 +13,9 @@ vi.mock('./api/auth', async (original) => {
       logout: vi.fn(),
       createInvitation: vi.fn(),
       acceptInvitation: vi.fn(),
+      listAccounts: vi.fn(),
+      disableAccount: vi.fn(),
+      reactivateAccount: vi.fn(),
     },
   };
 });
@@ -20,6 +23,7 @@ const api = vi.mocked(authApi);
 
 describe('authentication experience', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     vi.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
@@ -33,6 +37,7 @@ describe('authentication experience', () => {
     render(<App />);
     expect(await screen.findByText('Signed in as admin')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /create member invitation/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /manage household members/i })).toBeInTheDocument();
   });
 
   it('handles generic login failure, rate limiting, and success', async () => {
@@ -51,6 +56,77 @@ describe('authentication experience', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Signed in as member')).toBeInTheDocument();
     expect(screen.queryByText(/create member invitation/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/manage household members/i)).not.toBeInTheDocument();
+  });
+
+  it('renders only approved account fields and confirms a server-backed disable', async () => {
+    api.me.mockResolvedValue({ accountId: 'admin-id', role: 'ADMIN' });
+    api.listAccounts.mockResolvedValue([
+      {
+        accountId: 'admin-id',
+        loginName: 'admin',
+        displayName: 'Administrator',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        createdAt: '2026-08-15T00:00:00Z',
+      },
+      {
+        accountId: 'member-id',
+        loginName: 'member',
+        displayName: 'Household Member',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        createdAt: '2026-08-15T00:00:00Z',
+      },
+    ]);
+    api.disableAccount.mockResolvedValue();
+    api.reactivateAccount.mockResolvedValue();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /manage household members/i }));
+    expect(await screen.findByText('Household Member')).toBeInTheDocument();
+    expect(screen.getByText('member')).toBeInTheDocument();
+    expect(screen.queryByText(/credential/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/password/i)).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /disable member/i })).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: /disable administrator/i }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /disable member/i }));
+    expect(window.confirm).toHaveBeenCalledWith('Disable Household Member?');
+    expect(await screen.findByText(/was disabled/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /reactivate member/i }));
+    expect(await screen.findByText(/was reactivated/i)).toBeInTheDocument();
+    expect(api.reactivateAccount).toHaveBeenCalledWith('member-id');
+  });
+
+  it('does not claim a transition succeeded when the server rejects it', async () => {
+    api.me.mockResolvedValue({ accountId: 'admin-id', role: 'ADMIN' });
+    api.listAccounts.mockResolvedValue([
+      {
+        accountId: 'member-id',
+        loginName: 'member',
+        displayName: 'Member',
+        role: 'MEMBER',
+        status: 'ACTIVE',
+        createdAt: '2026-08-15T00:00:00Z',
+      },
+    ]);
+    api.disableAccount.mockRejectedValue(new ApiError(409, 'invalid_transition'));
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /manage household members/i }));
+    fireEvent.click(await screen.findByRole('button', { name: /disable member/i }));
+    expect(await screen.findByText(/was not changed/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /disable member/i })).toBeInTheDocument();
+  });
+
+  it('returns to login when the account-management session expires', async () => {
+    api.me.mockResolvedValue({ accountId: 'admin-id', role: 'ADMIN' });
+    api.listAccounts.mockRejectedValue(new ApiError(401));
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /manage household members/i }));
+    expect(await screen.findByRole('heading', { name: /sign in/i })).toBeInTheDocument();
   });
 
   it('logs out and returns to login', async () => {

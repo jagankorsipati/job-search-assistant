@@ -144,7 +144,8 @@ class AuthenticationSecurityIT {
                         .containsEntry("outcome", "FAILED"));
         assertThat(jdbc.queryForList("SELECT column_name FROM information_schema.columns "
                 + "WHERE table_schema='job_search_assistant' AND table_name='authentication_security_event'", String.class))
-                .containsExactlyInAnyOrder("event_id", "event_type", "outcome", "account_id", "occurred_at");
+                .containsExactlyInAnyOrder("event_id", "event_type", "outcome", "account_id", "target_account_id",
+                        "occurred_at");
     }
 
     @Test

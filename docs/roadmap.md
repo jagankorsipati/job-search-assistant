@@ -21,7 +21,9 @@ Each milestone should be independently reviewable and committable.
   - Phase 2C1 complete: secure HTTP login/logout/current-session endpoints, PostgreSQL-backed sessions, CSRF, rotation, idle and absolute expiry, per-request account validation, bounded rate limiting, and minimal authentication audit events
   - Phase 2C2 complete: invitation HTTP flows, offline compromised-password screening, anonymous-session exhaustion protection, and accessible frontend authentication
 - Phase 2D complete: server-derived actor context, narrow `identity::actor` named interface, owner-scoped SQL contract, and reusable PostgreSQL cross-user isolation tests using test-only resources
-- Phase 2E next: identity security hardening and Phase 2 completion review
+- Phase 2E (in progress)
+  - Phase 2E1 complete: MEMBER-only administration, immediate UUID-indexed session revocation, credential-version invalidation, bounded authentication-audit retention, and minimal accessible administrator UI
+  - Phase 2E2 next: final Phase 2 security verification and release checkpoint
 - Minimal audit events
 
 ## Phase 3 — Candidate profile

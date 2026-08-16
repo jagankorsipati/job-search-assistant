@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
-import { ApiError, authApi, type Identity } from './api/auth';
+import { ApiError, authApi, type Identity, type ManagedAccount } from './api/auth';
 
-type View = 'loading' | 'login' | 'shell' | 'invite' | 'admin';
+type View = 'loading' | 'login' | 'shell' | 'invite' | 'admin-invitations' | 'admin-accounts';
 const navigationItems = ['Dashboard', 'Profile', 'Jobs', 'Documents', 'Applications'] as const;
 
 export function App() {
@@ -26,9 +26,11 @@ export function App() {
       .then((me) => {
         setIdentity(me);
         setView(
-          window.location.pathname === '/admin/invitations' && me.role === 'ADMIN'
-            ? 'admin'
-            : 'shell',
+          me.role === 'ADMIN' && window.location.pathname === '/admin/invitations'
+            ? 'admin-invitations'
+            : me.role === 'ADMIN' && window.location.pathname === '/admin/accounts'
+              ? 'admin-accounts'
+              : 'shell',
         );
       })
       .catch(() => setView(window.location.pathname === '/invite' ? 'invite' : 'login'));
@@ -63,20 +65,19 @@ export function App() {
         }}
       />
     );
-  if (view === 'admin' && identity?.role === 'ADMIN')
-    return (
-      <CreateInvitation
-        onBack={() => navigate('shell', '/')}
-        onExpired={() => {
-          setIdentity(undefined);
-          navigate('login', '/login');
-        }}
-      />
-    );
+  const expireSession = () => {
+    setIdentity(undefined);
+    navigate('login', '/login');
+  };
+  if (view === 'admin-invitations' && identity?.role === 'ADMIN')
+    return <CreateInvitation onBack={() => navigate('shell', '/')} onExpired={expireSession} />;
+  if (view === 'admin-accounts' && identity?.role === 'ADMIN')
+    return <ManageAccounts onBack={() => navigate('shell', '/')} onExpired={expireSession} />;
   return (
     <Shell
       identity={identity!}
-      onAdmin={() => navigate('admin', '/admin/invitations')}
+      onInvitations={() => navigate('admin-invitations', '/admin/invitations')}
+      onAccounts={() => navigate('admin-accounts', '/admin/accounts')}
       onLogout={() =>
         void authApi.logout().finally(() => {
           setIdentity(undefined);
@@ -242,11 +243,13 @@ function AcceptInvitation({ initialToken, onDone }: { initialToken: string; onDo
 
 function Shell({
   identity,
-  onAdmin,
+  onInvitations,
+  onAccounts,
   onLogout,
 }: {
   identity: Identity;
-  onAdmin: () => void;
+  onInvitations: () => void;
+  onAccounts: () => void;
   onLogout: () => void;
 }) {
   return (
@@ -270,7 +273,12 @@ function Shell({
               ))}
             </ul>
           </nav>
-          {identity.role === 'ADMIN' && <button onClick={onAdmin}>Create member invitation</button>}
+          {identity.role === 'ADMIN' && (
+            <div className="admin-actions" aria-label="Household administration">
+              <button onClick={onInvitations}>Create member invitation</button>
+              <button onClick={onAccounts}>Manage household members</button>
+            </div>
+          )}
         </aside>
         <main id="main-content" className="main-content">
           <section className="hero">
@@ -283,6 +291,109 @@ function Shell({
         </main>
       </div>
     </div>
+  );
+}
+
+function ManageAccounts({ onBack, onExpired }: { onBack: () => void; onExpired: () => void }) {
+  const [accounts, setAccounts] = useState<ManagedAccount[]>([]);
+  const [message, setMessage] = useState('Loading household accountsâ€¦');
+  const [busyId, setBusyId] = useState<string>();
+  useEffect(() => {
+    void authApi
+      .listAccounts()
+      .then((result) => {
+        setAccounts(result);
+        setMessage('');
+      })
+      .catch((failure) => {
+        if (failure instanceof ApiError && failure.status === 401) onExpired();
+        else
+          setMessage(
+            failure instanceof ApiError && failure.status === 403
+              ? 'You do not have permission to manage accounts.'
+              : 'Household accounts are temporarily unavailable.',
+          );
+      });
+  }, [onExpired]);
+  const transition = async (account: ManagedAccount) => {
+    const action = account.status === 'ACTIVE' ? 'disable' : 'reactivate';
+    if (
+      !window.confirm(`${action === 'disable' ? 'Disable' : 'Reactivate'} ${account.displayName}?`)
+    )
+      return;
+    setBusyId(account.accountId);
+    setMessage('');
+    try {
+      if (action === 'disable') await authApi.disableAccount(account.accountId);
+      else await authApi.reactivateAccount(account.accountId);
+      setAccounts((current) =>
+        current.map((item) =>
+          item.accountId === account.accountId
+            ? { ...item, status: action === 'disable' ? 'DISABLED' : 'ACTIVE' }
+            : item,
+        ),
+      );
+      setMessage(
+        `${account.displayName} was ${action === 'disable' ? 'disabled' : 'reactivated'}.`,
+      );
+    } catch (failure) {
+      if (failure instanceof ApiError && failure.status === 401) onExpired();
+      else
+        setMessage(
+          failure instanceof ApiError && failure.status === 403
+            ? 'You do not have permission to manage accounts.'
+            : 'The account was not changed. Refresh and try again.',
+        );
+    } finally {
+      setBusyId(undefined);
+    }
+  };
+  return (
+    <AuthFrame title="Manage household members">
+      <p>Account access only. Private career content remains inaccessible to administrators.</p>
+      <p role="status" aria-live="polite">
+        {message}
+      </p>
+      <ul className="account-list" aria-label="Household accounts">
+        {accounts.map((account) => (
+          <li key={account.accountId} className="account-card">
+            <h2>{account.displayName}</h2>
+            <dl>
+              <div>
+                <dt>Login</dt>
+                <dd>{account.loginName}</dd>
+              </div>
+              <div>
+                <dt>Role</dt>
+                <dd>{account.role}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>
+                  <strong>{account.status}</strong>
+                </dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>{new Date(account.createdAt).toLocaleDateString()}</dd>
+              </div>
+            </dl>
+            {account.role === 'MEMBER' &&
+              (account.status === 'ACTIVE' || account.status === 'DISABLED') && (
+                <button
+                  disabled={busyId === account.accountId}
+                  onClick={() => void transition(account)}
+                >
+                  {account.status === 'ACTIVE' ? 'Disable member' : 'Reactivate member'}
+                </button>
+              )}
+          </li>
+        ))}
+      </ul>
+      <button className="text-button" onClick={onBack}>
+        Back to workspace
+      </button>
+    </AuthFrame>
   );
 }
 

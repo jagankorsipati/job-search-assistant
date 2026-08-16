@@ -23,6 +23,10 @@ class AuthenticationAuditService {
     }
 
     void record(String type, String outcome, UUID accountId) {
+        record(type, outcome, accountId, null);
+    }
+
+    void record(String type, String outcome, UUID actingAccountId, UUID targetAccountId) {
         try {
             JdbcClient jdbcClient = jdbcClientProvider.getIfAvailable();
             if (jdbcClient == null) {
@@ -30,13 +34,14 @@ class AuthenticationAuditService {
             }
             jdbcClient.sql("""
                     INSERT INTO job_search_assistant.authentication_security_event
-                        (event_id, event_type, outcome, account_id, occurred_at)
-                    VALUES (:id, :type, :outcome, :accountId, :occurredAt)
+                        (event_id, event_type, outcome, account_id, target_account_id, occurred_at)
+                    VALUES (:id, :type, :outcome, :accountId, :targetAccountId, :occurredAt)
                     """)
                     .param("id", UUID.randomUUID())
                     .param("type", type)
                     .param("outcome", outcome)
-                    .param("accountId", accountId)
+                    .param("accountId", actingAccountId)
+                    .param("targetAccountId", targetAccountId)
                     .param("occurredAt", OffsetDateTime.ofInstant(clock.instant(), ZoneOffset.UTC))
                     .update();
         } catch (RuntimeException failure) {

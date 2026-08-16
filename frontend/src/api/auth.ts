@@ -13,6 +13,15 @@ export interface Acceptance {
   displayName: string;
   password: string;
 }
+export type AccountStatus = 'PENDING_ACTIVATION' | 'ACTIVE' | 'DISABLED';
+export interface ManagedAccount {
+  accountId: string;
+  loginName: string;
+  displayName: string;
+  role: Role;
+  status: AccountStatus;
+  createdAt: string;
+}
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -50,6 +59,11 @@ async function request<T>(url: string, body?: unknown): Promise<T> {
   if (!response.ok) throw await apiError(response);
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
+async function get<T>(url: string): Promise<T> {
+  const response = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw await apiError(response);
+  return (await response.json()) as T;
+}
 async function apiError(response: Response): Promise<ApiError> {
   let code: string | undefined;
   try {
@@ -72,6 +86,11 @@ export const authApi = {
     csrf = undefined;
   },
   createInvitation: () => request<Invitation>('/api/admin/invitations'),
+  listAccounts: () => get<ManagedAccount[]>('/api/admin/accounts'),
+  disableAccount: (accountId: string) =>
+    request<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/disable`),
+  reactivateAccount: (accountId: string) =>
+    request<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/reactivate`),
   acceptInvitation: (acceptance: Acceptance) =>
     request<Identity>('/api/invitations/accept', acceptance),
 };

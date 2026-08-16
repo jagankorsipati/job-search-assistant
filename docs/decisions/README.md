@@ -13,3 +13,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-007](ADR-007-stateful-browser-authentication.md)    | Use stateful PostgreSQL-backed browser authentication        | Accepted |
 | [ADR-008](ADR-008-invitation-registration-and-password-screening.md) | Complete invite-only browser registration       | Accepted |
 | [ADR-009](ADR-009-owner-scoped-authorization.md)       | Enforce owner-scoped authorization                           | Accepted |
+| [ADR-010](ADR-010-household-member-administration.md)  | Limit household member administration                       | Accepted |

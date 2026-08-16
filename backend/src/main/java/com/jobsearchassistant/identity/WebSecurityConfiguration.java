@@ -23,7 +23,7 @@ class WebSecurityConfiguration {
         http.authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/health", "/api/auth/csrf", "/api/auth/login",
                                 "/api/invitations/accept").permitAll()
-                        .requestMatchers("/api/admin/invitations").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/invitations", "/api/admin/accounts/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/me", "/api/auth/logout").authenticated()
                         .anyRequest().denyAll())
                 .sessionManagement(session -> session
