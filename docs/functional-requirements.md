@@ -9,6 +9,8 @@
 - **FR-005:** New accounts require a single-use household invitation created by an administrator.
 - **FR-006:** Administrators can invite, disable, or recover accounts but cannot read user-owned career content by default.
 - **FR-007:** Sessions identify exactly one user; switching users requires logout and reauthentication.
+- **FR-008:** Non-owned and nonexistent private resources return the same not-found response; private collections include only the authenticated owner's rows.
+- **FR-009:** Administrative roles authorize only explicit administrative operations and never bypass private-resource ownership.
 
 ## Candidate profile
 

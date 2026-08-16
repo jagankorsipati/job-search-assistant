@@ -1,5 +1,6 @@
 package com.jobsearchassistant;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -7,9 +8,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -25,6 +28,10 @@ class JobSearchAssistantApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    @Qualifier("requestMappingHandlerMapping")
+    private RequestMappingHandlerMapping mappings;
+
     @Test
     void applicationContextLoads() {
     }
@@ -36,5 +43,12 @@ class JobSearchAssistantApplicationTests {
                 .andExpect(content().contentTypeCompatibleWith("application/vnd.spring-boot.actuator.v3+json"))
                 .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.components").doesNotExist());
+    }
+
+    @Test
+    void testOnlyOwnershipEndpointIsAbsentFromNormalApplicationContext() {
+        assertThat(mappings.getHandlerMethods().keySet())
+                .noneMatch(mapping -> mapping.getPatternValues().stream()
+                        .anyMatch(pattern -> pattern.startsWith("/test/owned-resources")));
     }
 }

@@ -1,6 +1,7 @@
 package com.jobsearchassistant;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -8,6 +9,8 @@ import java.util.stream.Collectors;
 import com.jobsearchassistant.identity.AccountId;
 import com.jobsearchassistant.identity.InvitationLifecycle;
 import com.jobsearchassistant.identity.LoginName;
+import com.jobsearchassistant.identity.api.AuthenticatedActor;
+import com.jobsearchassistant.identity.api.CurrentActorProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 
@@ -46,5 +49,17 @@ class ModularArchitectureTests {
         assertThat(identity).matches(module -> module.contains(LoginName.class));
         assertThat(identity).matches(module -> module.contains(InvitationLifecycle.class));
         assertThat(identity.getDirectDependencies(modules).isEmpty()).isTrue();
+    }
+
+    @Test
+    void identityExposesOnlyTheNamedActorContractToDomainModules() {
+        Package actorPackage = AuthenticatedActor.class.getPackage();
+        var namedInterface = actorPackage.getAnnotation(org.springframework.modulith.NamedInterface.class);
+
+        assertThat(namedInterface).isNotNull();
+        assertThat(namedInterface.value()).containsExactly("actor");
+        assertThat(CurrentActorProvider.class.getPackageName()).isEqualTo("com.jobsearchassistant.identity.api");
+        assertThatThrownBy(() -> Class.forName("com.jobsearchassistant.identity.api.SessionPrincipal"))
+                .isInstanceOf(ClassNotFoundException.class);
     }
 }

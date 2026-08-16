@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2C — browser authentication and invite-only household registration complete. PostgreSQL-backed sessions, CSRF, bounded authentication and invitation controls, offline compromised-password screening, and accessible React login/invitation experiences are implemented. Phase 2 remains in progress pending owner-scoped authorization.
+Phase 2D complete. The backend now exposes a minimal server-derived actor contract and a tested owner-scoped authorization pattern with PostgreSQL defense in depth. Existing authentication, invitation, session, CSRF, rate-limit, and audit behavior remains intact. Phase 2 remains in progress pending Phase 2E security hardening and completion review.
 
 ## Planned capabilities
 
@@ -187,4 +187,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, and PostgreSQ
 
 ## Next milestone
 
-Phase 2D: implement owner-scoped persistence and authorization integration tests. Account administration, recovery, delegated access, AI, and job scraping remain out of scope.
+Phase 2E: perform identity security hardening and the Phase 2 completion review. Account administration, recovery, delegated access, AI, and job scraping remain out of scope.

@@ -26,6 +26,9 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Administrators may invite, disable, and assist with recovery, but cannot read another member's profile, résumé, jobs, documents, applications, or files by default.
 - Authentication establishes actor identity and never implies authorization to user-owned resources.
 - Owner identity is derived from the authenticated server-side context. Browser-supplied owner identifiers are never trusted.
+- Domain modules obtain the current UUID and role only through the `identity::actor` named interface. Session principals, credential state, repositories, HTTP sessions, and Spring Security objects remain identity internals.
+- Owner-scoped SQL is mandatory for reads, updates, deletes, collections, and bulk operations. Non-owned and nonexistent resources share `404` behavior; administrators do not bypass private ownership.
+- Background operations require explicit owner or reviewed system authority.
 - The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
 - Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
 - Browser sessions are opaque and PostgreSQL-backed. Cookies are Secure by default, HttpOnly, and SameSite=Strict; successful login rotates the anonymous CSRF session ID. Direct local HTTP development must explicitly set `SESSION_COOKIE_SECURE=false`.

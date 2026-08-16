@@ -1,5 +1,6 @@
 /** Templates, evidence-backed proposals, approvals, and document exports. */
 @org.springframework.modulith.ApplicationModule(
         displayName = "Documents",
-        type = org.springframework.modulith.ApplicationModule.Type.CLOSED)
+        type = org.springframework.modulith.ApplicationModule.Type.CLOSED,
+        allowedDependencies = "identity::actor")
 package com.jobsearchassistant.documents;

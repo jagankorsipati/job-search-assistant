@@ -24,3 +24,18 @@
 - Household membership does not imply access to another member's records.
 - Administrator authority permits identity administration only; it does not imply access to user-owned career content.
 - Authentication does not authorize a resource by itself. Ownership is derived from trusted server-side identity, never a browser-supplied owner ID.
+
+## Owner-scoped persistence contract
+
+- `owner_account_id` is an immutable UUID assigned from `CurrentActorProvider` during creation.
+- Browser-supplied owner fields are rejected or ignored; they never affect ownership.
+- Individual reads use `WHERE id = ? AND owner_account_id = ?`.
+- Updates and deletes use the same two predicates and treat zero affected rows as not found.
+- Collections and bulk operations always filter `owner_account_id`.
+- User-local unique constraints include `owner_account_id` where appropriate.
+- Owner-scoped indexes generally begin with `owner_account_id`.
+- Background work carries an explicit owner or separately reviewed system authority.
+
+Non-owned and nonexistent individual resources both return `404`; no preliminary unscoped lookup reveals ownership. Owner-filtered collections return an empty result when there are no visible rows. `ADMIN` has no private-resource bypass. Explicit administrative operations use separate role-protected APIs. PostgreSQL row-level security remains deferred pending a demonstrated operational need and a reviewed connection-pooling design.
+
+Every future owned-resource module must prove these rules with PostgreSQL repository and cross-user HTTP integration tests before its endpoints are accepted. ADR-009 defines the reusable fixture and acceptance contract.
