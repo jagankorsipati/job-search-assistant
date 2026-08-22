@@ -24,6 +24,8 @@
 - Household membership does not imply access to another member's records.
 - Administrator authority permits identity administration only; it does not imply access to user-owned career content.
 - Authentication does not authorize a resource by itself. Ownership is derived from trusted server-side identity, never a browser-supplied owner ID.
+- Candidate profiles and career facts are owned by exactly one account. Profile ownership is immutable, one profile is allowed per owner, and career facts must be queried through owner-scoped predicates.
+- Confirmed career facts are account-owner attestations only. Confirmation does not mean third-party or application verification, and imported or AI-generated text remains draft until the owner confirms it.
 
 ## Owner-scoped persistence contract
 
@@ -41,3 +43,5 @@ Non-owned and nonexistent individual resources both return `404`; no preliminary
 Every future owned-resource module must prove these rules with PostgreSQL repository and cross-user HTTP integration tests before its endpoints are accepted. ADR-009 defines the reusable fixture and acceptance contract.
 
 Household account administration changes only identity access state. Disabling or reactivating a member neither transfers, deletes, reads, nor exposes that member's private rows or files. Administrator account-management authority remains separate from owner-scoped career-data authorization.
+
+Archived career facts remain owned history and are excluded from new generated content. They require an explicit restoration transition before modification or reconfirmation.

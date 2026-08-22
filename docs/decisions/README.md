@@ -14,3 +14,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-008](ADR-008-invitation-registration-and-password-screening.md) | Complete invite-only browser registration       | Accepted |
 | [ADR-009](ADR-009-owner-scoped-authorization.md)       | Enforce owner-scoped authorization                           | Accepted |
 | [ADR-010](ADR-010-household-member-administration.md)  | Limit household member administration                       | Accepted |
+| [ADR-011](ADR-011-candidate-profile-and-career-fact-foundation.md) | Establish candidate profile and career-fact foundation | Accepted |

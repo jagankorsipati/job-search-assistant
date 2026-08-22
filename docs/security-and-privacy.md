@@ -29,6 +29,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Domain modules obtain the current UUID and role only through the `identity::actor` named interface. Session principals, credential state, repositories, HTTP sessions, and Spring Security objects remain identity internals.
 - Owner-scoped SQL is mandatory for reads, updates, deletes, collections, and bulk operations. Non-owned and nonexistent resources share `404` behavior; administrators do not bypass private ownership.
 - Background operations require explicit owner or reviewed system authority.
+- Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
 - The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
 - Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
 - Browser sessions are opaque and PostgreSQL-backed. Cookies are Secure by default, HttpOnly, and SameSite=Strict; successful login rotates the anonymous CSRF session ID. Direct local HTTP development must explicitly set `SESSION_COOKIE_SECURE=false`.
@@ -61,6 +62,11 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - API credentials remain server-side.
 - Provider responses are treated as untrusted proposals.
 - Job descriptions are delimited as data to reduce prompt-injection risk.
+- Imported or AI-generated career text is always draft. It cannot become confirmed or eligible for generated documents until the account owner explicitly attests that it is accurate.
+
+## Candidate-profile privacy
+
+The profile module stores professional-display and matching-oriented information only. It must not store passwords, credentials, Social Security numbers, immigration document numbers, birth dates, full home addresses, government identification, salary history, or references' private contact information. Work authorization may be captured only as a user-authored statement, not as document numbers or images.
 
 ## Network posture
 

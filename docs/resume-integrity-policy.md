@@ -7,17 +7,17 @@ The system may reorganize, emphasize, and reword verified experience. It must ne
 ## Fact states
 
 - **Draft:** entered or extracted but not approved by the user
-- **Verified:** explicitly confirmed by the user and eligible for tailoring
-- **Retired:** historically retained but excluded from new suggestions
+- **Confirmed:** explicitly attested by the account owner and eligible for tailoring
+- **Archived:** historically retained but excluded from new suggestions
 
-Only verified facts can appear in generated application documents.
+Only confirmed facts can appear in generated application documents. Confirmed does not mean the employer, school, certification authority, or application independently verified the claim.
 
 ## Allowed transformations
 
-- Reorder verified bullets or skills for relevance.
+- Reorder confirmed bullets or skills for relevance.
 - Shorten or clarify wording without changing meaning.
-- Select a subset of verified facts.
-- Combine compatible verified facts while retaining provenance.
+- Select a subset of confirmed facts.
+- Combine compatible confirmed facts while retaining provenance.
 - Suggest questions asking the user to verify a possible missing fact.
 
 ## Prohibited transformations
@@ -26,12 +26,12 @@ Only verified facts can appear in generated application documents.
 - Add tools based only on a job title or industry.
 - Create numerical impact not present in verified evidence.
 - Upgrade proficiency, responsibility, seniority, or duration.
-- Present a draft or AI inference as fact.
+- Present a draft, archived fact, or AI inference as fact.
 - Hide a known gap by ambiguous wording.
 
 ## Enforcement
 
-Every proposed claim carries references to one or more verified fact IDs. Export is blocked when a claim lacks evidence. The review screen shows additions, removals, wording changes, and evidence. User approval is recorded, but approval cannot override the requirement for verified evidence; the user must first update and verify the profile.
+Every proposed claim carries references to one or more confirmed fact IDs. Export is blocked when a claim lacks evidence. The review screen shows additions, removals, wording changes, and evidence. User approval is recorded, but approval cannot override the requirement for confirmed evidence; the user must first update and confirm the profile fact.
 
 ## AI behavior
 

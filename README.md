@@ -6,12 +6,12 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 2E1 complete. Administrators can list minimal household account metadata and disable or reactivate MEMBER access without gaining private-workspace access. Disablement revokes UUID-indexed sessions immediately, credential versions provide defense in depth, and authentication audits have bounded retention. Phase 2 and Phase 2E remain in progress pending the Phase 2E2 security verification and release checkpoint.
+Phase 3A complete. The profile module now has an owner-scoped candidate-profile and career-fact foundation with a draft, confirmed, and archived truthfulness lifecycle. Phase 3 remains in progress; no profile endpoints, resume upload, AI extraction, or generated documents are included yet.
 
 ## Planned capabilities
 
 - Separate household accounts and private candidate workspaces
-- Candidate profiles containing verified career facts
+- Candidate profiles containing owner-confirmed career facts
 - Job capture from pasted text and URLs
 - Explainable fit analysis and gap reporting
 - Reviewed résumé and cover-letter drafts
@@ -196,4 +196,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 3: implement the candidate profile and career-fact foundation while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 3: continue from the Phase 3A candidate profile and career-fact foundation into manual profile management and safe base-résumé handling while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.

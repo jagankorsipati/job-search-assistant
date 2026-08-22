@@ -28,7 +28,7 @@ Each milestone should be independently reviewable and committable.
 
 ## Phase 3 — Candidate profile
 
-- Career-fact model, verification lifecycle, provenance
+- Phase 3A complete: owner-scoped candidate-profile and structured career-fact domain model, truthful confirmation lifecycle, PostgreSQL schema foundation, and privacy/ownership decisions
 - Base résumé upload with safe storage
 - Manual profile management before automated extraction
 

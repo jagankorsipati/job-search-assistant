@@ -15,9 +15,9 @@
 ## Candidate profile
 
 - **FR-010:** Users can manage employment, education, projects, skills, certifications, and accomplishments.
-- **FR-011:** Facts have draft, verified, or retired status and retain provenance.
+- **FR-011:** Facts have draft, confirmed, or archived status. Confirmed means account-owner attested, not independently verified.
 - **FR-012:** Users can upload a DOCX base résumé and confirm extracted facts.
-- **FR-013:** AI output cannot mark a fact verified.
+- **FR-013:** AI or imported output cannot mark a fact confirmed automatically.
 
 ## Jobs and analysis
 
