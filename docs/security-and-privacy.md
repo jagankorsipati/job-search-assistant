@@ -95,6 +95,8 @@ V1 binds to the private network only. Remote access uses Tailscale or an equival
 
 Classification is intentionally conservative: “mitigated” means controls and repeatable evidence exist, not that risk is eliminated. Detailed implementation and test links are in the [Phase 2 verification matrix](security/phase-2-verification.md).
 
+Phase 3 candidate-profile verification evidence is recorded in the [Phase 3 verification matrix](security/phase-3-verification.md). Browser verification now covers profile creation/editing, career-fact confirmation/archive/restore, owner isolation between administrator and member accounts, direct cross-user API rejection, optimistic conflicts, CSRF rejection, session-expiration handling, and browser-storage/cookie/URL privacy.
+
 | Threat | Asset and boundary | Mitigation and verification evidence | Residual risk | Classification |
 | --- | --- | --- | --- | --- |
 | Credential stuffing / guessing | Credentials; anonymous login boundary | Argon2id, generic failures, dummy verification, bounded source/login limiter; unit, PostgreSQL HTTP, and browser disabled-login tests | In-memory limits reset and are per instance; Argon2 remains a DoS cost | Mitigated for one instance; distributed control deferred |

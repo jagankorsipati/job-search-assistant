@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 3C complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs plus an owner-facing frontend workspace at `/profile` for manual profile editing, draft/confirmed/archived career facts, explicit accuracy attestation, optimistic-conflict recovery, and archive/restore lifecycle transitions. Phase 3 remains in progress; resume upload, AI extraction, and generated documents are not included yet.
+Phase 3D complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs, an owner-facing frontend workspace at `/profile`, and repeatable real-browser evidence for profile lifecycle, cross-user isolation, truthfulness attestation, optimistic conflicts, CSRF/session handling, browser privacy, and sanitized diagnostics. Phase 3 remains in progress; base resume upload, AI extraction, and generated documents are not included yet.
 
 ## Planned capabilities
 
@@ -98,7 +98,7 @@ Local household setup proceeds in this order: bootstrap the first administrator,
 
 Compromised-password screening is entirely offline. Provenance and the reviewed update command are documented in [the blocklist guide](docs/security/compromised-password-blocklist.md).
 
-The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
+The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Candidate-profile verification evidence is recorded in the [Phase 3 verification matrix](docs/security/phase-3-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
 
 Profile API endpoints live under `/api/profile`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/profile/career-facts` supports exact `category` and `status` enum filters plus a bounded `limit` of 1 through 100. State-changing requests require CSRF. Stale versions and invalid fact transitions return safe conflicts; nonexistent and non-owned resources share not-found behavior.
 
@@ -202,4 +202,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 3: continue from the Phase 3C profile workspace into the remaining Phase 3 verification milestone and then safe base-resume handling while preserving owner isolation and resume truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 3: continue from the Phase 3D verification milestone into Phase 3E base-resume upload with safe storage while preserving owner isolation and resume truthfulness. Phase 3 is not complete until the still-documented upload requirement is implemented or explicitly reassigned by a future decision. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.

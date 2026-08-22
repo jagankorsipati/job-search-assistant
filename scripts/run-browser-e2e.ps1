@@ -106,7 +106,7 @@ function Write-SafeDiagnostics {
     if (Test-Path -LiteralPath $rawPlaywrightRoot) {
         $safePlaywrightLines = Get-ChildItem -LiteralPath $rawPlaywrightRoot -Recurse -File -Filter 'error-context.md' |
             ForEach-Object { Get-Content -LiteralPath $_.FullName } |
-            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+identity-security\.spec\.ts)' } |
+            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security)\.spec\.ts)' } |
             ForEach-Object {
                 $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
                    -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
@@ -191,7 +191,7 @@ try {
         -WorkingDirectory $frontendRoot -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
-    Write-Host 'Running Playwright identity security journeys.' -ForegroundColor Cyan
+    Write-Host 'Running Playwright identity and profile security journeys.' -ForegroundColor Cyan
     Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
     $succeeded = $true
 }
@@ -219,4 +219,4 @@ finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'Browser E2E verification passed.' -ForegroundColor Green
+Write-Host 'Browser identity and profile E2E verification passed.' -ForegroundColor Green

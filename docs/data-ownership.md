@@ -46,6 +46,8 @@ Non-owned and nonexistent individual resources both return `404`; no preliminary
 
 Every future owned-resource module must prove these rules with PostgreSQL repository and cross-user HTTP integration tests before its endpoints are accepted. ADR-009 defines the reusable fixture and acceptance contract.
 
+Phase 3D adds real-browser evidence that the profile workspace preserves these ownership rules across independent administrator and member browser contexts. The browser suite verifies own-profile rendering, owner-filtered fact collections, direct cross-user fact access returning the same safe not-found shape as a nonexistent UUID, rejected cross-user mutations, and unchanged owner data after attempted cross-user operations.
+
 Household account administration changes only identity access state. Disabling or reactivating a member neither transfers, deletes, reads, nor exposes that member's private rows or files. Administrator account-management authority remains separate from owner-scoped career-data authorization.
 
 Archived career facts remain owned history and are excluded from new generated content. They require an explicit restoration transition before modification or reconfirmation.

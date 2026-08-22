@@ -121,7 +121,7 @@ jobs:
         run: docker compose down --remove-orphans
 
   browser-e2e:
-    name: Browser identity security verification
+    name: Browser identity and profile security verification
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -172,4 +172,4 @@ jobs:
           retention-days: 7
 
       # Screenshots, traces, video, browser profiles, and HTML reports remain disabled because
-      # identity-flow artifacts can retain secrets. Only the script's sanitized text is uploaded.
+      # identity and profile artifacts can retain sensitive data. Only the script's sanitized text is uploaded.

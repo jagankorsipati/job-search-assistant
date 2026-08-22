@@ -22,6 +22,7 @@
 - **FR-015:** Archived career facts are retained history and are excluded from new generated content; physical deletion is deferred.
 - **FR-016:** The authenticated frontend profile workspace allows owners, including administrators acting only for themselves, to create and edit their profile, manage draft/confirmed/archived career facts, and recover from optimistic conflicts without autosave or client-side persistence of profile data.
 - **FR-017:** Confirming a career fact in the UI requires an explicit, non-persisted accuracy attestation. Editing a confirmed fact returns it to draft before later generated content can use it again.
+- **FR-018:** Real-browser verification proves candidate-profile ownership, truthfulness lifecycle, optimistic conflict handling, CSRF/session behavior, browser privacy, and safe diagnostics against a disposable PostgreSQL-backed full-stack environment.
 
 ## Jobs and analysis
 
