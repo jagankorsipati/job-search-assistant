@@ -61,3 +61,5 @@ Archived career facts remain owned history and are excluded from new generated c
 Frontend archive and restore flows wait for server confirmation before changing the saved representation. Restore returns a fact to draft and does not recreate the owner's prior attestation.
 
 Phase 4A adds database-level ownership integrity for `captured_job`, `job_description_snapshot`, `job_application`, and `application_status_history`. Account deletion remains restricted while these rows exist. Archiving a job or application hides it from active collections without deleting snapshots, applications, or status history.
+
+Phase 4B adds production job and snapshot APIs. `JobService` derives the owner from `CurrentActorProvider`, repository methods require owner UUIDs, and individual job and snapshot operations predicate by owner plus resource identifiers. Snapshot append locks the owner-scoped parent job row before sequence allocation. Latest duplicate canonical content for the same owner/job returns `409 duplicate_snapshot`; no cross-owner digest lookup is performed.

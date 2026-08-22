@@ -38,8 +38,9 @@ Each milestone should be independently reviewable and committable.
 ## Phase 4 — Job workspace
 
 - Phase 4A complete: owner-scoped captured-job, immutable job-description snapshot, job-application, and application-status-history domain/schema foundation
-- Phase 4B next: authenticated job-capture and description-snapshot APIs for manual, pasted-description, and URL-reference entry
-- Later Phase 4: metadata editing, duplicate warnings, search, application pipeline APIs, and UI
+- Phase 4B complete: authenticated owner-scoped job capture, metadata update, immutable description-snapshot, and archive/restore APIs
+- Phase 4C next: authenticated application status, next-action, and append-only status-history APIs
+- Later Phase 4: duplicate warnings, search, and job/application frontend UI
 
 ## Phase 5 — Deterministic fit analysis
 

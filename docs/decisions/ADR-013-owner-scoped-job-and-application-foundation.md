@@ -42,3 +42,15 @@ Database ownership integrity uses immutable `owner_account_id`, owner FKs to `us
 Phase 4B can add job-capture and snapshot APIs without changing the schema foundation. Applications may later reference jobs through a deliberately exposed jobs application interface if runtime coordination becomes necessary, but Phase 4A avoids speculative cross-module Java dependencies.
 
 Duplicate detection, resume-version linkage, reminders, search, job-board integrations, URL content retrieval, and application submission remain deferred. Account deletion remains restricted while owner-scoped job/application rows exist.
+
+## Phase 4B API Decision
+
+The jobs module owns the production job and snapshot API layer under `/api/jobs`. Controllers do not accept trusted owner fields. `JobService` derives the owner from `CurrentActorProvider.currentActor()` and every repository method requires the owner UUID. The module still depends only on `identity::actor`.
+
+Job lists are owner-filtered, bounded to 100, active by default, and ordered by `metadata_updated_at DESC, id DESC`, matching the Phase 4A owner-first active index shape. Snapshot lists are owner/job-filtered, bounded to 50, and returned oldest-first by `snapshot_sequence ASC, id ASC`.
+
+`POST /api/jobs` can atomically create a captured job and initial snapshot. `PASTED_DESCRIPTION` requires nonblank `descriptionText`; `URL_REFERENCE` requires a valid normalized posting URL; `MANUAL` may omit both. URL references are never fetched.
+
+Snapshot append locks the owner-scoped parent job row with `FOR UPDATE`, rejects archived jobs, canonicalizes text, checks only the latest owner/job snapshot digest for duplicate canonical content, allocates the next sequence, and inserts the immutable row in one transaction. Duplicate latest canonical content returns `409 duplicate_snapshot`.
+
+Metadata updates, archive, and restore require `expectedVersion`, update only owner-scoped active/archived rows as appropriate, and return safe `409` conflicts for stale versions or invalid lifecycle state. Nonexistent and non-owned resources return the same safe `404`.

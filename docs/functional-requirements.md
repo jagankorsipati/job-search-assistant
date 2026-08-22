@@ -35,6 +35,8 @@
 - **FR-025:** Captured jobs are owner-scoped opportunities and do not imply that the owner applied.
 - **FR-026:** Job descriptions are retained as immutable append-only snapshots so later edits or external posting changes do not rewrite history.
 - **FR-027:** Stored posting URLs are references only; the server does not fetch URL content during Phase 4A.
+- **FR-028:** Authenticated job APIs derive ownership server-side, never accept trusted owner identifiers, and keep non-owned and nonexistent jobs indistinguishable.
+- **FR-029:** Description snapshot appends are immutable, owner-scoped, sequence-ordered, bounded, and reject the latest canonical duplicate content for the same owner/job.
 
 ## Documents
 

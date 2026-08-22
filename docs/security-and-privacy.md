@@ -94,6 +94,8 @@ Phase 4A stores only owner-scoped job/application metadata, canonical pasted job
 
 Capturing a job, saving a URL reference, generating or downloading a resume, or receiving AI output never marks an application as applied, interviewing, offered, or accepted. Those statuses are owner-declared operational state and require explicit user-authorized transitions in later phases. Archival is separate from status and does not delete snapshots or status history.
 
+Phase 4B exposes only authenticated `/api/jobs/**` APIs. State-changing job requests require CSRF through the existing browser-session protection. Responses use `Cache-Control: no-store` and omit owner identifiers. Nonexistent and non-owned jobs or snapshots share the same safe `404` response. URL-reference capture stores only the normalized reference; no outbound HTTP client or fetch path is introduced.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 4 is in progress. Phase 4A adds the owner-scoped domain and PostgreSQL schema foundation for captured jobs, immutable job-description snapshots, job applications, and append-only application status history. No job APIs, frontend workspace, scraping, URL fetching, AI analysis, reminders, or application submission are included yet.
+Phase 4 is in progress. Phase 4B adds authenticated owner-scoped APIs for captured jobs, immutable job-description snapshots, metadata updates, and job archive/restore. Application-status APIs, frontend workspace, scraping, URL fetching, AI analysis, reminders, and application submission are not included yet.
 
 ## Planned capabilities
 
@@ -104,7 +104,9 @@ Profile API endpoints live under `/api/profile`. They derive ownership from the 
 
 Base résumé API endpoints live under `/api/documents/base-resume`. Each owner can store one current PDF or DOCX up to 5 MiB. Uploading stores the source document only; it does not parse, extract, confirm, import, invoke AI, or change career facts. `POST` creates the initial document, `PUT` replaces it with `expectedVersion`, and `/download` streams it as an attachment. Metadata responses never expose owner IDs, checksums, storage keys, or filesystem paths. Configure storage with `BASE_RESUME_STORAGE_ROOT`; the local default is for development only and must be treated as sensitive data.
 
-Phase 4A job/application storage is schema-only. Captured jobs and snapshots are owner-scoped, snapshots are append-only and SHA-256 digested after canonical LF line-ending normalization, and posting URLs are stored only as HTTP/HTTPS references without server fetching. Applications are one-per-owner/job, status is user-declared, status history is append-only, and archival is separate from final outcome.
+Job API endpoints live under `/api/jobs`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/jobs` returns only the actor's jobs, defaults to active rows, supports `archived=true`, and caps `limit` at 100. `POST /api/jobs` captures manual, pasted-description, or URL-reference opportunities and can atomically create initial snapshot sequence 1. `GET`/`PUT /api/jobs/{jobId}` read and update owner-scoped metadata with optimistic locking. `/archive` and `/restore` are explicit versioned transitions; hard deletion is not implemented.
+
+Snapshot endpoints live under `/api/jobs/{jobId}/snapshots`. Lists are oldest-first by sequence and capped at 50. Appending locks the owner-scoped parent job, rejects archived jobs, canonicalizes LF line endings, SHA-256 digests the canonical text, and inserts the next sequence atomically. Reposting canonical duplicate content as the latest snapshot returns `409 duplicate_snapshot`. Posting URLs are stored only as HTTP/HTTPS references, fragments are removed, credentials are rejected, and the server never fetches URL content.
 
 The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
 
@@ -206,4 +208,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 4B: add authenticated job-capture and description-snapshot APIs. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, and job scraping remain out of scope.
+Phase 4C: add application status/history APIs. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, and job scraping remain out of scope.
