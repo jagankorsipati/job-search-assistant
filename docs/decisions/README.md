@@ -16,3 +16,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-010](ADR-010-household-member-administration.md)  | Limit household member administration                       | Accepted |
 | [ADR-011](ADR-011-candidate-profile-and-career-fact-foundation.md) | Establish candidate profile and career-fact foundation | Accepted |
 | [ADR-012](ADR-012-secure-local-base-resume-storage.md) | Store owner-scoped base resumes securely on local filesystem | Accepted |
+| [ADR-013](ADR-013-owner-scoped-job-and-application-foundation.md) | Establish owner-scoped job and application tracking foundation | Accepted |

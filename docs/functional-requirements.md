@@ -32,6 +32,9 @@
 - **FR-022:** The system warns about likely duplicates.
 - **FR-023:** Fit analysis classifies requirements and links matches to verified evidence.
 - **FR-024:** Unknown or missing requirements remain visible as gaps.
+- **FR-025:** Captured jobs are owner-scoped opportunities and do not imply that the owner applied.
+- **FR-026:** Job descriptions are retained as immutable append-only snapshots so later edits or external posting changes do not rewrite history.
+- **FR-027:** Stored posting URLs are references only; the server does not fetch URL content during Phase 4A.
 
 ## Documents
 
@@ -46,6 +49,8 @@
 - **FR-040:** Users can manage application stage, notes, dates, contacts, and follow-ups.
 - **FR-041:** Stage changes form an immutable history.
 - **FR-042:** The system does not submit an application in V1.
+- **FR-043:** Application status is user-declared operational state; `APPLIED`, `INTERVIEWING`, `OFFER`, and `ACCEPTED` require explicit owner-recorded transitions and are never inferred from AI, job capture, resume generation, or downloads.
+- **FR-044:** Application archival is separate from status so final outcomes remain visible in history.
 
 ## Data control and operations
 

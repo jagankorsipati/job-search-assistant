@@ -53,7 +53,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
     }
 
     @Test
@@ -74,8 +74,9 @@ class PostgreSqlInfrastructureIT {
                 String.class);
 
         assertThat(tables).containsExactly(
-                "authentication_security_event", "base_resume_document", "candidate_profile", "career_fact", "household_invitation",
-                "spring_session", "spring_session_attributes", "user_account");
+                "application_status_history", "authentication_security_event", "base_resume_document", "candidate_profile",
+                "captured_job", "career_fact", "household_invitation", "job_application",
+                "job_description_snapshot", "spring_session", "spring_session_attributes", "user_account");
         assertThat(constraints).contains(
                 "uq_user_account_normalized_login_name",
                 "ck_user_account_role",
@@ -261,6 +262,110 @@ class PostgreSqlInfrastructureIT {
                 .isInstanceOf(DataAccessException.class);
     }
 
+    @Test
+    void jobAndApplicationFoundationUsesOwnerScopedTablesAndConstraints() {
+        List<String> constraints = jdbcTemplate.queryForList(
+                "SELECT constraint_name FROM information_schema.table_constraints "
+                        + "WHERE table_schema = 'job_search_assistant' "
+                        + "AND table_name IN ('captured_job', 'job_description_snapshot', 'job_application', 'application_status_history')",
+                String.class);
+        List<String> indexes = jdbcTemplate.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = 'job_search_assistant'",
+                String.class);
+
+        assertThat(constraints).contains(
+                "uq_captured_job_owner_id",
+                "fk_captured_job_owner",
+                "ck_captured_job_source_type",
+                "ck_captured_job_posting_url",
+                "uq_job_description_snapshot_sequence",
+                "fk_job_description_snapshot_job_owner",
+                "ck_job_description_snapshot_sha256",
+                "uq_job_application_owner_job",
+                "fk_job_application_job_owner",
+                "ck_job_application_status",
+                "ck_job_application_applied_at",
+                "ck_job_application_terminal_next_action",
+                "fk_application_status_history_application_owner",
+                "ck_application_status_history_initial");
+        assertThat(indexes).contains(
+                "captured_job_owner_active_ix",
+                "job_description_snapshot_owner_job_ix",
+                "job_application_owner_active_ix",
+                "job_application_owner_status_ix",
+                "application_status_history_owner_application_ix");
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT trigger_name FROM information_schema.triggers "
+                                + "WHERE trigger_schema = 'job_search_assistant'",
+                        String.class))
+                .contains(
+                        "captured_job_owner_immutable_trg",
+                        "job_description_snapshot_owner_immutable_trg",
+                        "job_application_owner_immutable_trg",
+                        "application_status_history_owner_immutable_trg");
+    }
+
+    @Test
+    void jobAndApplicationConstraintsRejectInvalidRowsAndCrossOwnerParents() {
+        UUID firstOwner = insertAccount("jobs.one", "Jobs One");
+        UUID secondOwner = insertAccount("jobs.two", "Jobs Two");
+        UUID jobId = insertCapturedJob(firstOwner, "MANUAL");
+        UUID applicationId = insertJobApplication(firstOwner, jobId, "DRAFT", null);
+
+        assertThatThrownBy(() -> insertCapturedJob(firstOwner, "LINKEDIN"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "INSERT INTO job_search_assistant.captured_job "
+                                + "(id, owner_account_id, company_name, job_title, posting_url, source_type, captured_at, metadata_updated_at) "
+                                + "VALUES (?, ?, ?, ?, ?, ?, now(), now())",
+                        UUID.randomUUID(), firstOwner, "Acme", "Engineer", "ftp://example.test/job", "URL_REFERENCE"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertSnapshot(secondOwner, jobId, 1))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        insertSnapshot(firstOwner, jobId, 1);
+        assertThatThrownBy(() -> insertSnapshot(firstOwner, jobId, 1))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertJobApplication(secondOwner, jobId, "DRAFT", null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertJobApplication(firstOwner, jobId, "DRAFT", null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertJobApplication(firstOwner, UUID.randomUUID(), "NOT_REAL", null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertJobApplication(firstOwner, UUID.randomUUID(), "APPLIED", null))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertHistory(secondOwner, applicationId, null, "DRAFT"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> insertHistory(firstOwner, applicationId, null, "APPLIED"))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void jobAndApplicationOwnerIdentifiersCannotBeChanged() {
+        UUID firstOwner = insertAccount("job.immutable.one", "Job Immutable One");
+        UUID secondOwner = insertAccount("job.immutable.two", "Job Immutable Two");
+        UUID jobId = insertCapturedJob(firstOwner, "MANUAL");
+        UUID snapshotId = insertSnapshot(firstOwner, jobId, 1);
+        UUID applicationId = insertJobApplication(firstOwner, jobId, "DRAFT", null);
+        UUID historyId = insertHistory(firstOwner, applicationId, null, "DRAFT");
+
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE job_search_assistant.captured_job SET owner_account_id = ? WHERE id = ?",
+                        secondOwner, jobId))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE job_search_assistant.job_description_snapshot SET owner_account_id = ? WHERE id = ?",
+                        secondOwner, snapshotId))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE job_search_assistant.job_application SET owner_account_id = ? WHERE id = ?",
+                        secondOwner, applicationId))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE job_search_assistant.application_status_history SET owner_account_id = ? WHERE id = ?",
+                        secondOwner, historyId))
+                .isInstanceOf(DataAccessException.class);
+    }
+
     private UUID insertAccount(String normalizedLoginName, String displayName) {
         UUID id = UUID.randomUUID();
         jdbcTemplate.update(
@@ -306,6 +411,47 @@ class PostgreSqlInfrastructureIT {
                 id, ownerAccountId, "resume.pdf", "application/pdf", 12,
                 "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
                 "opaque-storage-key");
+        return id;
+    }
+
+    private UUID insertCapturedJob(UUID ownerAccountId, String sourceType) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO job_search_assistant.captured_job "
+                        + "(id, owner_account_id, company_name, job_title, source_type, captured_at, metadata_updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, now(), now())",
+                id, ownerAccountId, "Acme", "Engineer", sourceType);
+        return id;
+    }
+
+    private UUID insertSnapshot(UUID ownerAccountId, UUID jobId, int sequence) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO job_search_assistant.job_description_snapshot "
+                        + "(id, owner_account_id, job_id, snapshot_sequence, source_type, description_text, sha256_digest, captured_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, now())",
+                id, ownerAccountId, jobId, sequence, "PASTED_DESCRIPTION", "Job description",
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef");
+        return id;
+    }
+
+    private UUID insertJobApplication(UUID ownerAccountId, UUID jobId, String status, String appliedAt) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO job_search_assistant.job_application "
+                        + "(id, owner_account_id, job_id, status, applied_at, status_changed_at, created_at, updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?::timestamptz, now(), now(), now())",
+                id, ownerAccountId, jobId, status, appliedAt);
+        return id;
+    }
+
+    private UUID insertHistory(UUID ownerAccountId, UUID applicationId, String previousStatus, String newStatus) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO job_search_assistant.application_status_history "
+                        + "(id, owner_account_id, application_id, previous_status, new_status, effective_at, recorded_at) "
+                        + "VALUES (?, ?, ?, ?, ?, now(), now())",
+                id, ownerAccountId, applicationId, previousStatus, newStatus);
         return id;
     }
 }

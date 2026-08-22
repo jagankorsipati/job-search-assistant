@@ -31,6 +31,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Background operations require explicit owner or reviewed system authority.
 - Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
 - Base résumé metadata carries immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's document metadata or download.
+- Captured jobs, job-description snapshots, job applications, and application status history carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database foreign keys prevent cross-owner snapshots, applications, and history rows. Administrators have no bypass into another member's jobs or applications.
 - `/api/profile/**` endpoints require authentication. POST and PUT lifecycle operations require CSRF through the existing browser-session protection.
 - Profile and career-fact APIs use safe JSON errors: `400` for malformed input, `401` for unauthenticated access, `404` for nonexistent or non-owned private resources, and `409` for uniqueness, stale-version, or lifecycle conflicts.
 - The `/profile` frontend route restores authenticated sessions through `/api/auth/me`. If profile requests return `401`, the UI clears only in-memory authenticated state and returns to login. It does not persist identity, profile, career-fact, or authorization data in browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
@@ -87,6 +88,12 @@ Files are stored outside PostgreSQL through an internal storage abstraction. The
 
 Replacement requires `expectedVersion`. Validation or storage failure preserves the current résumé. The system publishes the replacement and updates metadata atomically as far as the filesystem/database boundary allows; old-file cleanup occurs only after the database commit and is best effort. Orphan-file cleanup and hard deletion are deferred operational risks.
 
+## Job and application privacy
+
+Phase 4A stores only owner-scoped job/application metadata, canonical pasted job-description text, SHA-256 snapshot digests, user-declared application state, bounded notes, and next-action details. It does not fetch posting URLs, store remote HTML, scripts, cookies, credentials, browser session data, IP addresses, user agents, or security-audit metadata in domain history.
+
+Capturing a job, saving a URL reference, generating or downloading a resume, or receiving AI output never marks an application as applied, interviewing, offered, or accepted. Those statuses are owner-declared operational state and require explicit user-authorized transitions in later phases. Archival is separate from status and does not delete snapshots or status history.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.
@@ -119,7 +126,7 @@ Phase 3 candidate-profile verification evidence is recorded in the [Phase 3 veri
 | Stale or disabled-account sessions | Account/session state | Per-request status/role/credential-version validation and UUID-indexed revocation; integration and multi-context browser tests | Database outage causes application unavailability | Mitigated |
 | Privilege escalation | ADMIN operations | Server session role, ADMIN endpoint rules, MEMBER-only transition invariant; controller/integration/browser tests | Compromised administrator can administer access | Mitigated within designed role |
 | Administrator abuse | Member privacy | ADMIN has no ownership bypass; narrow actor interface and owner-scoped repositories/tests | Administrator controls host/database and can access raw storage | Accepted for trusted household operator; host hardening required |
-| Cross-user private-resource access | Career and document data | Server-derived actor UUID, owner predicate contract, identical missing/non-owned result; PostgreSQL and browser isolation tests | Each future repository must adopt the contract; no PostgreSQL RLS | Mitigated contract; RLS deferred |
+| Cross-user private-resource access | Career, document, job, and application data | Server-derived actor UUID, owner predicate contract, owner-aware database constraints, identical missing/non-owned result; PostgreSQL and browser isolation tests | Each future repository must adopt the contract; no PostgreSQL RLS | Mitigated contract; RLS deferred |
 | Malicious résumé upload | Stored documents and future download consumers | PDF/DOCX-only validation, size limits, ZIP traversal and bomb bounds, no server-side rendering or parsing in Phase 3E | Content validation is not malware scanning; downloaded files can still be malicious | Partially mitigated; malware scanning deferred |
 | Résumé storage exposure | Filesystem storage root and backups | Externalized storage root outside served/source directories, opaque keys, no path/key exposure, deployment checklist permissions | Host administrator or backup compromise can expose files | Deployment prerequisite |
 | Browser-supplied owner IDs | Authorization boundary | Ownership fixture ignores/rejects caller identity and derives actor server-side | Future code regression remains possible | Mitigated by architecture tests and reusable fixture |
