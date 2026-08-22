@@ -30,9 +30,10 @@ Each milestone should be independently reviewable and committable.
 
 - Phase 3A complete: owner-scoped candidate-profile and structured career-fact domain model, truthful confirmation lifecycle, PostgreSQL schema foundation, and privacy/ownership decisions
 - Phase 3B complete: authenticated owner-scoped profile and career-fact APIs, optimistic locking, explicit confirmation attestation, archival lifecycle transitions, and PostgreSQL-backed API isolation tests
+- Phase 3C complete: accessible `/profile` frontend workspace for manual candidate-profile editing, career-fact creation and filtering, confirmation attestation, archive/restore, safe API errors, and optimistic-conflict reloads without browser persistence
+- Phase 3D: complete real-browser profile lifecycle verification
 - Base résumé upload with safe storage
 - Manual profile management before automated extraction
-- Phase 3C: frontend candidate-profile and career-fact management
 
 ## Phase 4 — Job workspace
 

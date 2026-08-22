@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 3B complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs with optimistic locking, explicit confirmation attestation, and archive/restore lifecycle transitions. Phase 3 remains in progress; frontend profile management, resume upload, AI extraction, and generated documents are not included yet.
+Phase 3C complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs plus an owner-facing frontend workspace at `/profile` for manual profile editing, draft/confirmed/archived career facts, explicit accuracy attestation, optimistic-conflict recovery, and archive/restore lifecycle transitions. Phase 3 remains in progress; resume upload, AI extraction, and generated documents are not included yet.
 
 ## Planned capabilities
 
@@ -101,6 +101,10 @@ Compromised-password screening is entirely offline. Provenance and the reviewed 
 The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
 
 Profile API endpoints live under `/api/profile`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/profile/career-facts` supports exact `category` and `status` enum filters plus a bounded `limit` of 1 through 100. State-changing requests require CSRF. Stale versions and invalid fact transitions return safe conflicts; nonexistent and non-owned resources share not-found behavior.
+
+The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
+
+The profile form never autosaves. It sends the current version on update and preserves unsaved edits when a `409` conflict indicates the server changed elsewhere. Career facts are created as draft. Confirmed means the account owner explicitly attested that the fact is accurate; it is not independent verification by an employer, school, certification authority, or the application. Editing a confirmed fact returns it to draft. Draft and confirmed facts can be archived after confirmation; archived facts can be restored to draft, but cannot be edited until restored. Hard deletion remains deferred.
 
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
@@ -198,4 +202,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 3: continue from the Phase 3B profile API foundation into frontend profile management, then safe base-résumé handling while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 3: continue from the Phase 3C profile workspace into the remaining Phase 3 verification milestone and then safe base-resume handling while preserving owner isolation and resume truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.

@@ -39,6 +39,8 @@
 - Background work carries an explicit owner or separately reviewed system authority.
 - Profile API requests never include trusted owner fields. Creation, update, collection, and lifecycle-transition services derive ownership from `CurrentActorProvider.currentActor()` and pass the owner UUID explicitly into repository methods.
 - Candidate-profile and career-fact responses do not return `owner_account_id`; ownership is enforced beneath the response boundary.
+- The frontend profile workspace displays only the authenticated user's profile and career facts. It never accepts or submits owner identifiers, and administrator accounts use the same owner-scoped profile route for their own data only.
+- Profile and career-fact data is held in React memory for the current page lifetime only. It is not written to browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
 
 Non-owned and nonexistent individual resources both return `404`; no preliminary unscoped lookup reveals ownership. Owner-filtered collections return an empty result when there are no visible rows. `ADMIN` has no private-resource bypass. Explicit administrative operations use separate role-protected APIs. PostgreSQL row-level security remains deferred pending a demonstrated operational need and a reviewed connection-pooling design.
 
@@ -47,3 +49,5 @@ Every future owned-resource module must prove these rules with PostgreSQL reposi
 Household account administration changes only identity access state. Disabling or reactivating a member neither transfers, deletes, reads, nor exposes that member's private rows or files. Administrator account-management authority remains separate from owner-scoped career-data authorization.
 
 Archived career facts remain owned history and are excluded from new generated content. They require an explicit restoration transition before modification or reconfirmation.
+
+Frontend archive and restore flows wait for server confirmation before changing the saved representation. Restore returns a fact to draft and does not recreate the owner's prior attestation.

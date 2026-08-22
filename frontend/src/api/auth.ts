@@ -1,3 +1,5 @@
+import { apiGet, apiPost, ApiError, resetCsrf } from './client';
+
 export type Role = 'ADMIN' | 'MEMBER';
 export interface Identity {
   accountId: string;
@@ -22,75 +24,21 @@ export interface ManagedAccount {
   status: AccountStatus;
   createdAt: string;
 }
-export class ApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code?: string,
-    public readonly retryAfter?: string,
-  ) {
-    super('Request failed');
-  }
-}
-interface CsrfToken {
-  token: string;
-  headerName: string;
-  parameterName: string;
-}
-let csrf: CsrfToken | undefined;
-async function csrfToken(): Promise<CsrfToken> {
-  if (csrf !== undefined) return csrf;
-  const response = await fetch('/api/auth/csrf', { headers: { Accept: 'application/json' } });
-  if (!response.ok) throw await apiError(response);
-  csrf = (await response.json()) as CsrfToken;
-  return csrf;
-}
-async function request<T>(url: string, body?: unknown): Promise<T> {
-  const token = await csrfToken();
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      [token.headerName]: token.token,
-    },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-  });
-  if (response.status === 401) csrf = undefined;
-  if (!response.ok) throw await apiError(response);
-  return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
-}
-async function get<T>(url: string): Promise<T> {
-  const response = await fetch(url, { headers: { Accept: 'application/json' } });
-  if (!response.ok) throw await apiError(response);
-  return (await response.json()) as T;
-}
-async function apiError(response: Response): Promise<ApiError> {
-  let code: string | undefined;
-  try {
-    code = ((await response.json()) as { code?: string }).code;
-  } catch {
-    /* generic response */
-  }
-  return new ApiError(response.status, code, response.headers.get('Retry-After') ?? undefined);
-}
+export { ApiError };
 export const authApi = {
-  async me(): Promise<Identity> {
-    const response = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
-    if (!response.ok) throw await apiError(response);
-    return (await response.json()) as Identity;
-  },
+  me: () => apiGet<Identity>('/api/auth/me'),
   login: (loginName: string, password: string) =>
-    request<Identity>('/api/auth/login', { loginName, password }),
+    apiPost<Identity>('/api/auth/login', { loginName, password }),
   async logout(): Promise<void> {
-    await request<void>('/api/auth/logout');
-    csrf = undefined;
+    await apiPost<void>('/api/auth/logout');
+    resetCsrf();
   },
-  createInvitation: () => request<Invitation>('/api/admin/invitations'),
-  listAccounts: () => get<ManagedAccount[]>('/api/admin/accounts'),
+  createInvitation: () => apiPost<Invitation>('/api/admin/invitations'),
+  listAccounts: () => apiGet<ManagedAccount[]>('/api/admin/accounts'),
   disableAccount: (accountId: string) =>
-    request<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/disable`),
+    apiPost<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/disable`),
   reactivateAccount: (accountId: string) =>
-    request<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/reactivate`),
+    apiPost<void>(`/api/admin/accounts/${encodeURIComponent(accountId)}/reactivate`),
   acceptInvitation: (acceptance: Acceptance) =>
-    request<Identity>('/api/invitations/accept', acceptance),
+    apiPost<Identity>('/api/invitations/accept', acceptance),
 };

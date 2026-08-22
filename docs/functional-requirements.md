@@ -20,6 +20,8 @@
 - **FR-013:** AI or imported output cannot mark a fact confirmed automatically.
 - **FR-014:** Profile and career-fact APIs are owner-scoped, optimistic-lock protected, and require explicit confirmation attestation before a draft fact becomes confirmed.
 - **FR-015:** Archived career facts are retained history and are excluded from new generated content; physical deletion is deferred.
+- **FR-016:** The authenticated frontend profile workspace allows owners, including administrators acting only for themselves, to create and edit their profile, manage draft/confirmed/archived career facts, and recover from optimistic conflicts without autosave or client-side persistence of profile data.
+- **FR-017:** Confirming a career fact in the UI requires an explicit, non-persisted accuracy attestation. Editing a confirmed fact returns it to draft before later generated content can use it again.
 
 ## Jobs and analysis
 
