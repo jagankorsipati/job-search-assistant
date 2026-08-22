@@ -18,6 +18,18 @@ interface FactResponse {
   version: number;
   factualContent: string;
 }
+interface BaseResumeResponse {
+  id: string;
+  originalFilename: string;
+  mediaType: string;
+  byteSize: number;
+  version: number;
+}
+
+const syntheticPdfBytes = Buffer.from(
+  '%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n',
+  'latin1',
+);
 
 async function login(page: Page, loginName: string, password: string) {
   await page.goto('/login');
@@ -131,6 +143,49 @@ async function addFact(page: Page, content: string, category: 'EMPLOYMENT' | 'SK
   await expect(page.getByRole('button', { name: 'Save career fact' })).toHaveCount(0);
 }
 
+async function uploadBaseResume(page: Page, filename: string, bytes: Buffer) {
+  await page.getByLabel(/resume file/i).setInputFiles({
+    name: filename,
+    mimeType: 'application/pdf',
+    buffer: bytes,
+  });
+  await expect(
+    page.getByText(new RegExp(`Selected: ${filename.replace('.', '\\.')}`)),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Upload base resume' }).click();
+  await expect(page.getByText('Base resume uploaded.')).toBeVisible();
+  await expect(page.getByText(filename)).toBeVisible();
+}
+
+async function replaceBaseResume(page: Page, filename: string, bytes: Buffer) {
+  await page.getByRole('button', { name: 'Replace' }).click();
+  await page.getByLabel(/resume file/i).setInputFiles({
+    name: filename,
+    mimeType: 'application/pdf',
+    buffer: bytes,
+  });
+  await expect(
+    page.getByText(new RegExp(`Selected: ${filename.replace('.', '\\.')}`)),
+  ).toBeVisible();
+  page.once('dialog', (dialog) => dialog.accept());
+  await page.getByRole('button', { name: 'Replace base resume' }).click();
+}
+
+async function downloadBaseResume(page: Page) {
+  return page.evaluate(async () => {
+    const response = await fetch('/api/documents/base-resume/download');
+    const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
+    return {
+      status: response.status,
+      contentType: response.headers.get('content-type') ?? '',
+      disposition: response.headers.get('content-disposition') ?? '',
+      nosniff: response.headers.get('x-content-type-options') ?? '',
+      cacheControl: response.headers.get('cache-control') ?? '',
+      bytes,
+    };
+  });
+}
+
 async function assertNoBrowserPersistence(page: Page, forbidden: string[]) {
   const result = await page.evaluate(async (forbiddenValues) => {
     const storage = {
@@ -178,6 +233,30 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
 
   await login(memberPage, memberLogin, memberPassword);
   await createProfile(memberPage, 'Synthetic Member Profile');
+  await expect(memberPage.getByText('No base resume is stored for your account.')).toBeVisible();
+  await expect(
+    memberPage.getByText(/does not confirm, import, or change your career facts/i),
+  ).toBeVisible();
+  await memberPage.getByLabel(/resume file/i).setInputFiles({
+    name: 'not-a-resume.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('plain text'),
+  });
+  await expect(memberPage.getByRole('alert')).toContainText('PDF or DOCX');
+  await uploadBaseResume(memberPage, 'synthetic-base-resume.pdf', syntheticPdfBytes);
+  await memberPage.reload();
+  await expect(memberPage.getByText('synthetic-base-resume.pdf')).toBeVisible();
+  const downloadedResume = await downloadBaseResume(memberPage);
+  expect(downloadedResume.status).toBe(200);
+  expect(downloadedResume.contentType).toContain('application/pdf');
+  expect(downloadedResume.disposition).toContain('attachment');
+  expect(downloadedResume.nosniff).toBe('nosniff');
+  expect(downloadedResume.cacheControl).toContain('no-store');
+  expect(downloadedResume.bytes).toEqual(Array.from(syntheticPdfBytes));
+  const memberResume = await apiJson<BaseResumeResponse>(memberPage, '/api/documents/base-resume');
+  expect(memberResume.originalFilename).toBe('synthetic-base-resume.pdf');
+  expect(JSON.stringify(memberResume)).not.toContain('storageKey');
+  expect(JSON.stringify(memberResume)).not.toContain('sha256');
   await memberPage.reload();
   await expect(memberPage.getByRole('heading', { name: 'Candidate profile' })).toBeVisible();
   await expect(memberPage.getByText('Synthetic Member Profile')).toBeVisible();
@@ -280,6 +359,16 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   const adminPage = await adminContext.newPage();
   await login(adminPage, adminLogin, adminPassword);
   await createProfile(adminPage, 'Synthetic Admin Profile');
+  await expect(adminPage.getByText('synthetic-base-resume.pdf')).toHaveCount(0);
+  const adminResumeMissing = await apiStatusAndCode(adminPage, '/api/documents/base-resume');
+  expect(adminResumeMissing.status).toBe(404);
+  const adminResumeDownloadMissing = await apiStatusAndCode(
+    adminPage,
+    '/api/documents/base-resume/download',
+  );
+  expect(adminResumeDownloadMissing.status).toBe(404);
+  await uploadBaseResume(adminPage, 'synthetic-admin-resume.pdf', syntheticPdfBytes);
+  await expect(memberPage.getByText('synthetic-admin-resume.pdf')).toHaveCount(0);
   await addFact(adminPage, 'Synthetic admin-only fact.', 'SKILL');
   await expect(adminPage.getByText('Synthetic Member Updated')).toHaveCount(0);
   await expect(
@@ -370,6 +459,18 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   const conflictPage = await conflictContext.newPage();
   await login(conflictPage, memberLogin, memberPassword);
   await openProfile(conflictPage);
+  await expect(conflictPage.getByText('synthetic-base-resume.pdf')).toBeVisible();
+  const replacementPdfBytes = Buffer.from(
+    '%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF\n',
+    'latin1',
+  );
+  await replaceBaseResume(memberPage, 'synthetic-replacement-resume.pdf', replacementPdfBytes);
+  await expect(memberPage.getByText('Base resume replaced.')).toBeVisible();
+  await expect(memberPage.getByText('synthetic-replacement-resume.pdf')).toBeVisible();
+  await replaceBaseResume(conflictPage, 'synthetic-stale-resume.pdf', replacementPdfBytes);
+  await expect(conflictPage.getByRole('alert')).toContainText('base resume changed elsewhere');
+  await conflictPage.getByRole('button', { name: 'Reload latest resume' }).click();
+  await expect(conflictPage.getByText('synthetic-replacement-resume.pdf')).toBeVisible();
   await expect(
     conflictPage.getByText('Synthetic employment fact edited after confirmation.'),
   ).toBeVisible();
@@ -406,12 +507,15 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await assertNoBrowserPersistence(memberPage, [
     'Synthetic Member Updated',
     'Synthetic committed concurrent fact.',
+    'synthetic-replacement-resume.pdf',
     memberLogin,
     memberFact!.id,
+    memberResume.id,
   ]);
   await assertNoBrowserPersistence(adminPage, [
     'Synthetic Admin Profile',
     'Synthetic admin-only fact',
+    'synthetic-admin-resume.pdf',
   ]);
   await assertNoBrowserPersistence(conflictPage, ['Synthetic stale browser edit.', memberFact!.id]);
 

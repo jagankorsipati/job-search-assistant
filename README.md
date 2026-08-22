@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 3D complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs, an owner-facing frontend workspace at `/profile`, and repeatable real-browser evidence for profile lifecycle, cross-user isolation, truthfulness attestation, optimistic conflicts, CSRF/session handling, browser privacy, and sanitized diagnostics. Phase 3 remains in progress; base resume upload, AI extraction, and generated documents are not included yet.
+Phase 3 complete. The profile workspace now supports authenticated owner-scoped candidate profiles, truthful career facts, and one current base résumé upload/download per account. Browser verification covers profile lifecycle, cross-user isolation, truthfulness attestation, optimistic conflicts, CSRF/session handling, base résumé upload/replacement/download, browser privacy, and sanitized diagnostics. AI extraction and generated documents are not included yet.
 
 ## Planned capabilities
 
@@ -101,6 +101,8 @@ Compromised-password screening is entirely offline. Provenance and the reviewed 
 The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Candidate-profile verification evidence is recorded in the [Phase 3 verification matrix](docs/security/phase-3-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
 
 Profile API endpoints live under `/api/profile`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/profile/career-facts` supports exact `category` and `status` enum filters plus a bounded `limit` of 1 through 100. State-changing requests require CSRF. Stale versions and invalid fact transitions return safe conflicts; nonexistent and non-owned resources share not-found behavior.
+
+Base résumé API endpoints live under `/api/documents/base-resume`. Each owner can store one current PDF or DOCX up to 5 MiB. Uploading stores the source document only; it does not parse, extract, confirm, import, invoke AI, or change career facts. `POST` creates the initial document, `PUT` replaces it with `expectedVersion`, and `/download` streams it as an attachment. Metadata responses never expose owner IDs, checksums, storage keys, or filesystem paths. Configure storage with `BASE_RESUME_STORAGE_ROOT`; the local default is for development only and must be treated as sensitive data.
 
 The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
 
@@ -202,4 +204,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 3: continue from the Phase 3D verification milestone into Phase 3E base-resume upload with safe storage while preserving owner isolation and resume truthfulness. Phase 3 is not complete until the still-documented upload requirement is implemented or explicitly reassigned by a future decision. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 4: begin the job workspace. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, and job scraping remain out of scope.

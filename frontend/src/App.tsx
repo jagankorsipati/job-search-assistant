@@ -1,5 +1,6 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, authApi, type Identity, type ManagedAccount } from './api/auth';
+import { documentsApi, maxBaseResumeBytes, type BaseResumeMetadata } from './api/documents';
 import {
   careerFactCategories,
   careerFactStatuses,
@@ -613,6 +614,8 @@ function ProfileWorkspace({ onExpired }: { onExpired: () => void }) {
         <ProfileSummary profile={profile} onEdit={() => setProfileMode('edit')} />
       )}
 
+      <BaseResumeSection onExpired={onExpired} />
+
       <div className="facts-header">
         <div>
           <h2>Career facts</h2>
@@ -755,6 +758,220 @@ function ProfileWorkspace({ onExpired }: { onExpired: () => void }) {
             </li>
           ))}
         </ul>
+      )}
+    </section>
+  );
+}
+
+function BaseResumeSection({ onExpired }: { onExpired: () => void }) {
+  const [resume, setResume] = useState<BaseResumeMetadata>();
+  const [selectedFile, setSelectedFile] = useState<File>();
+  const [replacing, setReplacing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  const [failure, setFailure] = useState('');
+  const [conflict, setConflict] = useState(false);
+  const inputKey = `${resume?.version ?? 'empty'}-${replacing ? 'replace' : 'upload'}-${message}`;
+
+  const loadResume = useCallback(async () => {
+    setFailure('');
+    setConflict(false);
+    try {
+      setResume(await documentsApi.getBaseResume());
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) onExpired();
+      else if (error instanceof ApiError && error.status === 404) setResume(undefined);
+      else setFailure(readableError(error, 'Base resume metadata is temporarily unavailable.'));
+    }
+  }, [onExpired]);
+
+  useEffect(() => {
+    queueMicrotask(() => void loadResume());
+  }, [loadResume]);
+
+  const chooseFile = (file: File | undefined) => {
+    setMessage('');
+    setFailure('');
+    setConflict(false);
+    if (!file) {
+      setSelectedFile(undefined);
+      return;
+    }
+    const lower = file.name.toLowerCase();
+    if (!lower.endsWith('.pdf') && !lower.endsWith('.docx')) {
+      setSelectedFile(undefined);
+      setFailure('Choose a PDF or DOCX file.');
+      return;
+    }
+    if (file.size <= 0 || file.size > maxBaseResumeBytes) {
+      setSelectedFile(undefined);
+      setFailure('Choose a PDF or DOCX file that is 5 MiB or smaller.');
+      return;
+    }
+    setSelectedFile(file);
+  };
+
+  const upload = async () => {
+    if (!selectedFile) {
+      setFailure('Choose a PDF or DOCX file before uploading.');
+      return;
+    }
+    if (replacing && resume && !window.confirm('Replace your current base resume?')) return;
+    setBusy(true);
+    setFailure('');
+    setMessage('');
+    try {
+      const saved =
+        replacing && resume
+          ? await documentsApi.replaceBaseResume(selectedFile, resume.version)
+          : await documentsApi.uploadBaseResume(selectedFile);
+      setResume(saved);
+      setSelectedFile(undefined);
+      setReplacing(false);
+      setConflict(false);
+      setMessage(replacing ? 'Base resume replaced.' : 'Base resume uploaded.');
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) onExpired();
+      else if (error instanceof ApiError && error.status === 409) {
+        setConflict(true);
+        setFailure(
+          'This base resume changed elsewhere. Reload the latest version before replacing it.',
+        );
+      } else
+        setFailure(
+          readableError(error, 'The base resume was not stored. Choose a valid PDF or DOCX file.'),
+        );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const download = async () => {
+    setBusy(true);
+    setFailure('');
+    try {
+      const response = await documentsApi.downloadBaseResume();
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = resume?.originalFilename ?? 'base-resume';
+      link.rel = 'noopener';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) onExpired();
+      else setFailure(readableError(error, 'The base resume download is temporarily unavailable.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="base-resume-section" aria-labelledby="base-resume-title">
+      <div className="facts-header">
+        <div>
+          <h2 id="base-resume-title">Base resume</h2>
+          <p>
+            Uploading a resume stores the source document only. It does not confirm, import, or
+            change your career facts.
+          </p>
+          <p>PDF or DOCX only, 5 MiB maximum.</p>
+        </div>
+      </div>
+      <p className="status-line" role="status" aria-live="polite">
+        {message}
+      </p>
+      {failure && (
+        <div className="alert" role="alert">
+          <p>{failure}</p>
+          {conflict && <button onClick={() => void loadResume()}>Reload latest resume</button>}
+        </div>
+      )}
+      {resume ? (
+        <article className="profile-summary">
+          <div className="fact-title">
+            <h3>{resume.originalFilename}</h3>
+            <span className="status-pill">Current</span>
+          </div>
+          <dl>
+            <Detail name="Format" value={resume.mediaType === 'application/pdf' ? 'PDF' : 'DOCX'} />
+            <Detail name="Size" value={formatBytes(resume.byteSize)} />
+            <Detail name="Updated" value={new Date(resume.updatedAt).toLocaleString()} />
+          </dl>
+          <div className="form-actions">
+            <button disabled={busy} onClick={() => void download()}>
+              Download base resume
+            </button>
+            <button
+              className="secondary-button"
+              disabled={busy}
+              onClick={() => {
+                setReplacing(true);
+                setSelectedFile(undefined);
+                setFailure('');
+              }}
+            >
+              Replace
+            </button>
+          </div>
+        </article>
+      ) : (
+        <p className="empty-note">No base resume is stored for your account.</p>
+      )}
+      {(!resume || replacing) && (
+        <form
+          className="profile-form compact-form"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void upload();
+          }}
+        >
+          <fieldset disabled={busy}>
+            <legend>{resume ? 'Replace base resume' : 'Upload base resume'}</legend>
+            <label htmlFor="base-resume-file">
+              Resume file
+              <input
+                key={inputKey}
+                id="base-resume-file"
+                type="file"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                aria-describedby="base-resume-help base-resume-error"
+                onChange={(event) => chooseFile(event.target.files?.[0])}
+              />
+              <span className="helper" id="base-resume-help">
+                Select a PDF or DOCX file, then upload explicitly.
+              </span>
+              <span className="field-error" id="base-resume-error">
+                {failure && !conflict ? failure : ''}
+              </span>
+            </label>
+            {selectedFile && (
+              <p className="inline-note">
+                Selected: {selectedFile.name} ({formatBytes(selectedFile.size)})
+              </p>
+            )}
+          </fieldset>
+          <div className="form-actions">
+            <button disabled={busy || !selectedFile}>
+              {busy ? 'Storing...' : resume ? 'Replace base resume' : 'Upload base resume'}
+            </button>
+            {replacing && (
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setReplacing(false);
+                  setSelectedFile(undefined);
+                  setFailure('');
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
       )}
     </section>
   );
@@ -1368,6 +1585,12 @@ function dateRange(fact: CareerFact) {
   if (!fact.startedOn && !fact.endedOn) return fact.ongoing ? 'Ongoing' : 'Not provided';
   if (fact.ongoing) return `${fact.startedOn ?? 'Unknown'} to ongoing`;
   return `${fact.startedOn ?? 'Unknown'} to ${fact.endedOn ?? 'present'}`;
+}
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} bytes`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 function fieldId(labelText: string) {

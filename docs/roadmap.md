@@ -26,14 +26,14 @@ Each milestone should be independently reviewable and committable.
   - Phase 2E2 complete: final threat model, immutable blocklist provenance, secure-cookie regression coverage, disposable full-stack Playwright identity verification, hosted browser CI, deployment checklist, and release-readiness matrix
 - Minimal audit events with bounded retention
 
-## Phase 3 — Candidate profile
+## Phase 3 — Candidate profile (complete)
 
 - Phase 3A complete: owner-scoped candidate-profile and structured career-fact domain model, truthful confirmation lifecycle, PostgreSQL schema foundation, and privacy/ownership decisions
 - Phase 3B complete: authenticated owner-scoped profile and career-fact APIs, optimistic locking, explicit confirmation attestation, archival lifecycle transitions, and PostgreSQL-backed API isolation tests
 - Phase 3C complete: accessible `/profile` frontend workspace for manual candidate-profile editing, career-fact creation and filtering, confirmation attestation, archive/restore, safe API errors, and optimistic-conflict reloads without browser persistence
 - Phase 3D complete: real-browser candidate-profile lifecycle, career-fact truthfulness lifecycle, cross-user isolation, optimistic-conflict, CSRF/session, privacy, and sanitized-diagnostic verification
-- Phase 3E: base résumé upload with safe storage
-- Manual profile management before automated extraction
+- Phase 3E complete: owner-scoped base résumé upload, metadata inspection, replacement, attachment download, V7 schema, local storage abstraction, validation, privacy, and real-browser verification
+- Manual profile management before automated extraction remains the Phase 3 posture
 
 ## Phase 4 — Job workspace
 

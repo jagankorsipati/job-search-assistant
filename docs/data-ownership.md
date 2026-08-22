@@ -26,6 +26,7 @@
 - Authentication does not authorize a resource by itself. Ownership is derived from trusted server-side identity, never a browser-supplied owner ID.
 - Candidate profiles and career facts are owned by exactly one account. Profile ownership is immutable, one profile is allowed per owner, and career facts must be queried through owner-scoped predicates.
 - Confirmed career facts are account-owner attestations only. Confirmation does not mean third-party or application verification, and imported or AI-generated text remains draft until the owner confirms it.
+- Base resume metadata and stored files are owned by exactly one account. Upload derives ownership from `CurrentActorProvider`, uses a server-generated opaque storage key, and never trusts browser-supplied owner IDs, filenames as paths, storage keys, or filesystem paths.
 
 ## Owner-scoped persistence contract
 
@@ -39,6 +40,7 @@
 - Background work carries an explicit owner or separately reviewed system authority.
 - Profile API requests never include trusted owner fields. Creation, update, collection, and lifecycle-transition services derive ownership from `CurrentActorProvider.currentActor()` and pass the owner UUID explicitly into repository methods.
 - Candidate-profile and career-fact responses do not return `owner_account_id`; ownership is enforced beneath the response boundary.
+- Base resume responses do not return `owner_account_id`, checksums, storage keys, or filesystem paths. Download is owner-scoped and attachment-only.
 - The frontend profile workspace displays only the authenticated user's profile and career facts. It never accepts or submits owner identifiers, and administrator accounts use the same owner-scoped profile route for their own data only.
 - Profile and career-fact data is held in React memory for the current page lifetime only. It is not written to browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
 
@@ -47,6 +49,8 @@ Non-owned and nonexistent individual resources both return `404`; no preliminary
 Every future owned-resource module must prove these rules with PostgreSQL repository and cross-user HTTP integration tests before its endpoints are accepted. ADR-009 defines the reusable fixture and acceptance contract.
 
 Phase 3D adds real-browser evidence that the profile workspace preserves these ownership rules across independent administrator and member browser contexts. The browser suite verifies own-profile rendering, owner-filtered fact collections, direct cross-user fact access returning the same safe not-found shape as a nonexistent UUID, rejected cross-user mutations, and unchanged owner data after attempted cross-user operations.
+
+Phase 3E adds real-browser evidence that base resume metadata and downloads preserve these ownership rules. The browser suite verifies synthetic PDF upload, metadata reload, exact-byte download, administrator/member isolation, replacement, stale replacement conflict, and no browser-storage or URL persistence of resume data.
 
 Household account administration changes only identity access state. Disabling or reactivating a member neither transfers, deletes, reads, nor exposes that member's private rows or files. Administrator account-management authority remains separate from owner-scoped career-data authorization.
 

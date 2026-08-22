@@ -53,7 +53,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3", "4", "5", "6");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7");
     }
 
     @Test
@@ -74,7 +74,7 @@ class PostgreSqlInfrastructureIT {
                 String.class);
 
         assertThat(tables).containsExactly(
-                "authentication_security_event", "candidate_profile", "career_fact", "household_invitation",
+                "authentication_security_event", "base_resume_document", "candidate_profile", "career_fact", "household_invitation",
                 "spring_session", "spring_session_attributes", "user_account");
         assertThat(constraints).contains(
                 "uq_user_account_normalized_login_name",
@@ -160,6 +160,38 @@ class PostgreSqlInfrastructureIT {
     }
 
     @Test
+    void baseResumeFoundationUsesOwnerScopedMetadataAndConstraints() {
+        List<String> columns = jdbcTemplate.queryForList(
+                "SELECT column_name FROM information_schema.columns "
+                        + "WHERE table_schema = 'job_search_assistant' AND table_name = 'base_resume_document'",
+                String.class);
+        List<String> constraints = jdbcTemplate.queryForList(
+                "SELECT constraint_name FROM information_schema.table_constraints "
+                        + "WHERE table_schema = 'job_search_assistant' AND table_name = 'base_resume_document'",
+                String.class);
+        List<String> indexes = jdbcTemplate.queryForList(
+                "SELECT indexname FROM pg_indexes WHERE schemaname = 'job_search_assistant'",
+                String.class);
+
+        assertThat(columns).contains(
+                "id", "owner_account_id", "original_filename", "media_type", "byte_size", "sha256_checksum",
+                "storage_key", "created_at", "updated_at", "version");
+        assertThat(constraints).contains(
+                "uq_base_resume_document_owner",
+                "uq_base_resume_document_storage_key",
+                "fk_base_resume_document_owner",
+                "ck_base_resume_document_media_type",
+                "ck_base_resume_document_byte_size",
+                "ck_base_resume_document_sha256");
+        assertThat(indexes).contains("base_resume_document_owner_ix");
+        assertThat(jdbcTemplate.queryForList(
+                        "SELECT trigger_name FROM information_schema.triggers "
+                                + "WHERE trigger_schema = 'job_search_assistant'",
+                        String.class))
+                .contains("base_resume_document_owner_immutable_trg");
+    }
+
+    @Test
     void profileAndCareerFactConstraintsRejectInvalidRows() {
         UUID owner = insertAccount("profile.owner", "Profile Owner");
         insertProfile(UUID.randomUUID(), owner, "Profile Owner");
@@ -212,6 +244,7 @@ class PostgreSqlInfrastructureIT {
         UUID profileId = UUID.randomUUID();
         UUID careerFactId = insertCareerFact(firstOwner, "SKILL", "DRAFT", "Wrote owner-scoped SQL.",
                 null, null, false);
+        UUID documentId = insertBaseResume(firstOwner);
         insertProfile(profileId, firstOwner, "Immutable One");
 
         assertThatThrownBy(() -> jdbcTemplate.update(
@@ -221,6 +254,10 @@ class PostgreSqlInfrastructureIT {
         assertThatThrownBy(() -> jdbcTemplate.update(
                         "UPDATE job_search_assistant.career_fact SET owner_account_id = ? WHERE id = ?",
                         secondOwner, careerFactId))
+                .isInstanceOf(DataAccessException.class);
+        assertThatThrownBy(() -> jdbcTemplate.update(
+                        "UPDATE job_search_assistant.base_resume_document SET owner_account_id = ? WHERE id = ?",
+                        secondOwner, documentId))
                 .isInstanceOf(DataAccessException.class);
     }
 
@@ -256,6 +293,19 @@ class PostgreSqlInfrastructureIT {
                         + "(id, owner_account_id, category, status, factual_content, started_on, ended_on, ongoing, "
                         + "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?::date, ?::date, ?, now(), now())",
                 id, ownerAccountId, category, status, content, startedOn, endedOn, ongoing);
+        return id;
+    }
+
+    private UUID insertBaseResume(UUID ownerAccountId) {
+        UUID id = UUID.randomUUID();
+        jdbcTemplate.update(
+                "INSERT INTO job_search_assistant.base_resume_document "
+                        + "(id, owner_account_id, original_filename, media_type, byte_size, sha256_checksum, "
+                        + "storage_key, created_at, updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, now(), now())",
+                id, ownerAccountId, "resume.pdf", "application/pdf", 12,
+                "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+                "opaque-storage-key");
         return id;
     }
 }

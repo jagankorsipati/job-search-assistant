@@ -121,7 +121,7 @@ jobs:
         run: docker compose down --remove-orphans
 
   browser-e2e:
-    name: Browser identity and profile security verification
+    name: Browser identity, profile, and base resume security verification
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -171,5 +171,5 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-      # Screenshots, traces, video, browser profiles, and HTML reports remain disabled because
-      # identity and profile artifacts can retain sensitive data. Only the script's sanitized text is uploaded.
+      # Screenshots, traces, video, browser profiles, HTML reports, and uploaded resumes remain disabled
+      # because identity, profile, and document artifacts can retain sensitive data. Only sanitized text is uploaded.

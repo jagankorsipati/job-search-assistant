@@ -24,7 +24,8 @@ class WebSecurityConfiguration {
                         .requestMatchers("/actuator/health", "/api/auth/csrf", "/api/auth/login",
                                 "/api/invitations/accept").permitAll()
                         .requestMatchers("/api/admin/invitations", "/api/admin/accounts/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/profile/**").authenticated()
+                        .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/profile/**",
+                                "/api/documents/**").authenticated()
                         .anyRequest().denyAll())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

@@ -16,13 +16,14 @@
 
 - **FR-010:** Users can manage employment, education, projects, skills, certifications, and accomplishments.
 - **FR-011:** Facts have draft, confirmed, or archived status. Confirmed means account-owner attested, not independently verified.
-- **FR-012:** Users can upload a DOCX base résumé and confirm extracted facts.
+- **FR-012:** Users can upload, inspect metadata for, replace, and download one current PDF or DOCX base resume per account without parsing or extracting facts.
 - **FR-013:** AI or imported output cannot mark a fact confirmed automatically.
 - **FR-014:** Profile and career-fact APIs are owner-scoped, optimistic-lock protected, and require explicit confirmation attestation before a draft fact becomes confirmed.
 - **FR-015:** Archived career facts are retained history and are excluded from new generated content; physical deletion is deferred.
 - **FR-016:** The authenticated frontend profile workspace allows owners, including administrators acting only for themselves, to create and edit their profile, manage draft/confirmed/archived career facts, and recover from optimistic conflicts without autosave or client-side persistence of profile data.
 - **FR-017:** Confirming a career fact in the UI requires an explicit, non-persisted accuracy attestation. Editing a confirmed fact returns it to draft before later generated content can use it again.
 - **FR-018:** Real-browser verification proves candidate-profile ownership, truthfulness lifecycle, optimistic conflict handling, CSRF/session behavior, browser privacy, and safe diagnostics against a disposable PostgreSQL-backed full-stack environment.
+- **FR-019:** Real-browser verification proves base resume upload, replacement, download headers and bytes, cross-user isolation, stale replacement conflict handling, browser privacy, and safe diagnostics against disposable PostgreSQL and filesystem storage.
 
 ## Jobs and analysis
 
@@ -36,9 +37,9 @@
 
 - **FR-030:** Tailoring uses only verified facts.
 - **FR-031:** Users see original and proposed content before approval.
-- **FR-032:** Exports record their source résumé, job, approved changes, and creation time.
+- **FR-032:** Exports record their source resume, job, approved changes, and creation time.
 - **FR-033:** Users can generate and edit grounded cover-letter drafts.
-- **FR-034:** The system preserves the original résumé.
+- **FR-034:** The system preserves the original resume.
 
 ## Applications
 

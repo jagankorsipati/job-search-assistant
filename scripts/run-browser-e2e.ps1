@@ -22,6 +22,7 @@ $backendOutput = Join-Path $temporaryRoot 'normal-backend.log'
 $backendError = Join-Path $temporaryRoot 'normal-backend-error.log'
 $frontendOutput = Join-Path $temporaryRoot 'frontend.log'
 $frontendError = Join-Path $temporaryRoot 'frontend-error.log'
+$resumeStorageRoot = Join-Path $temporaryRoot 'base-resume-storage'
 $backendProcess = $null
 $frontendProcess = $null
 $succeeded = $false
@@ -88,6 +89,7 @@ function Get-SafeLogTail {
     return $relevant | ForEach-Object {
         $_ -replace '(?i)(password|token|cookie|csrf|session)[=: ]+\S+', '$1=[REDACTED]' `
            -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
+           -replace '(?i)\b[\w .-]+\.(pdf|docx)\b', '[REDACTED-FILENAME]' `
            -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
            -replace '\b[0-9a-f]{8}-[0-9a-f-]{27,}\b', '[REDACTED-ID]'
     }
@@ -109,6 +111,7 @@ function Write-SafeDiagnostics {
             Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security)\.spec\.ts)' } |
             ForEach-Object {
                 $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
+                   -replace '(?i)\b[\w .-]+\.(pdf|docx)\b', '[REDACTED-FILENAME]' `
                    -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
                    -replace '\b[0-9a-f]{8}-[0-9a-f-]{27,}\b', '[REDACTED-ID]'
             }
@@ -143,6 +146,7 @@ function Start-Backend {
     $env:DB_USERNAME = 'job_search_assistant_e2e'
     $env:DB_PASSWORD = 'e2e_only_not_a_secret'
     $env:SESSION_COOKIE_SECURE = 'false'
+    $env:BASE_RESUME_STORAGE_ROOT = $resumeStorageRoot
     $env:IDENTITY_BOOTSTRAP_ENABLED = $Bootstrap.ToString().ToLowerInvariant()
     if ($Bootstrap) {
         $env:IDENTITY_BOOTSTRAP_LOGIN = 'e2e.admin'
@@ -191,7 +195,7 @@ try {
         -WorkingDirectory $frontendRoot -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
-    Write-Host 'Running Playwright identity and profile security journeys.' -ForegroundColor Cyan
+    Write-Host 'Running Playwright identity, profile, and base resume security journeys.' -ForegroundColor Cyan
     Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
     $succeeded = $true
 }
@@ -206,7 +210,8 @@ finally {
         }
     }
     Remove-Item Env:E2E_ADMIN_PASSWORD, Env:E2E_MEMBER_PASSWORD, Env:IDENTITY_BOOTSTRAP_ENABLED, `
-        Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD -ErrorAction SilentlyContinue
+        Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD, `
+        Env:BASE_RESUME_STORAGE_ROOT -ErrorAction SilentlyContinue
     $previousErrorAction = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     & docker compose -p $projectName -f $composeFile down --volumes --remove-orphans *> $null
@@ -219,4 +224,4 @@ finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'Browser identity and profile E2E verification passed.' -ForegroundColor Green
+Write-Host 'Browser identity, profile, and base resume E2E verification passed.' -ForegroundColor Green

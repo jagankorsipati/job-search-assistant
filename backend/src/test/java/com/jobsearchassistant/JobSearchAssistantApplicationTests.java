@@ -21,7 +21,8 @@ import org.springframework.boot.autoconfigure.web.ServerProperties;
                 + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration",
         "identity.persistence.enabled=false",
-        "spring.session.store-type=none"
+        "spring.session.store-type=none",
+        "documents.base-resume.storage.root=target/test-application-base-resume-storage"
 })
 @AutoConfigureMockMvc
 class JobSearchAssistantApplicationTests {

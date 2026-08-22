@@ -30,6 +30,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Owner-scoped SQL is mandatory for reads, updates, deletes, collections, and bulk operations. Non-owned and nonexistent resources share `404` behavior; administrators do not bypass private ownership.
 - Background operations require explicit owner or reviewed system authority.
 - Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
+- Base résumé metadata carries immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's document metadata or download.
 - `/api/profile/**` endpoints require authentication. POST and PUT lifecycle operations require CSRF through the existing browser-session protection.
 - Profile and career-fact APIs use safe JSON errors: `400` for malformed input, `401` for unauthenticated access, `404` for nonexistent or non-owned private resources, and `409` for uniqueness, stale-version, or lifecycle conflicts.
 - The `/profile` frontend route restores authenticated sessions through `/api/auth/me`. If profile requests return `401`, the UI clears only in-memory authenticated state and returns to login. It does not persist identity, profile, career-fact, or authorization data in browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
@@ -76,6 +77,16 @@ Candidate-profile `careerSummary` is owner-authored presentation text. It must n
 
 The frontend explains that confirmed career facts are owner attestations only, not independent verification by the application or third parties. Confirmation requires a deliberate accuracy checkbox and sends `confirmedAccurate: true` with the expected version. Editing a confirmed fact returns it to draft. Archive and restore require explicit confirmation; restore returns the fact to draft and does not reconfirm it.
 
+## Base resume privacy
+
+The base résumé is an owner-controlled source document. Uploading it stores the source document only; it does not parse, extract career facts, confirm facts, generate profile content, invoke AI, or make the document visible to administrators or other household members.
+
+Only PDF and DOCX are accepted, up to 5 MiB. The server validates content by signature/structure rather than trusting browser MIME type or filename extension. DOCX checks include required entries, traversal names, entry count, uncompressed-size bounds, and suspicious compression ratios. These checks are not malware scanning; malware scanning is deferred and must be revisited before broader or less-trusted deployment.
+
+Files are stored outside PostgreSQL through an internal storage abstraction. The local filesystem implementation uses `BASE_RESUME_STORAGE_ROOT`, opaque server-generated storage keys, staged writes, SHA-256 calculation, validation before publish, containment checks, no symlink following for reads, and restrictive permissions where the platform supports them. The storage root, database, and backups contain sensitive résumé information and must be protected together.
+
+Replacement requires `expectedVersion`. Validation or storage failure preserves the current résumé. The system publishes the replacement and updates metadata atomically as far as the filesystem/database boundary allows; old-file cleanup occurs only after the database commit and is best effort. Orphan-file cleanup and hard deletion are deferred operational risks.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.
@@ -108,7 +119,9 @@ Phase 3 candidate-profile verification evidence is recorded in the [Phase 3 veri
 | Stale or disabled-account sessions | Account/session state | Per-request status/role/credential-version validation and UUID-indexed revocation; integration and multi-context browser tests | Database outage causes application unavailability | Mitigated |
 | Privilege escalation | ADMIN operations | Server session role, ADMIN endpoint rules, MEMBER-only transition invariant; controller/integration/browser tests | Compromised administrator can administer access | Mitigated within designed role |
 | Administrator abuse | Member privacy | ADMIN has no ownership bypass; narrow actor interface and owner-scoped repositories/tests | Administrator controls host/database and can access raw storage | Accepted for trusted household operator; host hardening required |
-| Cross-user private-resource access | Future career data | Server-derived actor UUID, owner predicate contract, identical missing/non-owned result; PostgreSQL isolation tests | Each future repository must adopt the contract; no PostgreSQL RLS | Mitigated contract; RLS deferred |
+| Cross-user private-resource access | Career and document data | Server-derived actor UUID, owner predicate contract, identical missing/non-owned result; PostgreSQL and browser isolation tests | Each future repository must adopt the contract; no PostgreSQL RLS | Mitigated contract; RLS deferred |
+| Malicious résumé upload | Stored documents and future download consumers | PDF/DOCX-only validation, size limits, ZIP traversal and bomb bounds, no server-side rendering or parsing in Phase 3E | Content validation is not malware scanning; downloaded files can still be malicious | Partially mitigated; malware scanning deferred |
+| Résumé storage exposure | Filesystem storage root and backups | Externalized storage root outside served/source directories, opaque keys, no path/key exposure, deployment checklist permissions | Host administrator or backup compromise can expose files | Deployment prerequisite |
 | Browser-supplied owner IDs | Authorization boundary | Ownership fixture ignores/rejects caller identity and derives actor server-side | Future code regression remains possible | Mitigated by architecture tests and reusable fixture |
 | Sensitive values in URLs, logs, errors, audit, storage | Tokens, credentials, sessions, personal data | Fragment capture/removal, redacted request records, generic errors, minimal audit columns, no browser storage; code review and browser assertions | Browser history before script execution and operator-level process inspection | Mitigated; private transfer remains required |
 | Blocklist tampering | Password policy resource / upstream supply chain | Immutable 40-character commit, SHA-256, exact counts, sorted/unique validation, fail-closed startup | SHA-256 pin update review can be compromised | Mitigated with manual update review |

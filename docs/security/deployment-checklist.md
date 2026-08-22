@@ -7,6 +7,9 @@ This is a future Raspberry Pi release gate, not evidence that deployment has occ
 - [ ] Bootstrap the first administrator once, then disable bootstrap and remove its process/environment values.
 - [ ] Keep PostgreSQL inside the application network with no LAN or public port.
 - [ ] Restrict application, database-volume, backup, key, and configuration file permissions.
+- [ ] Configure `BASE_RESUME_STORAGE_ROOT` outside the repository, classpath, frontend, and web-served directories; restrict it to the application OS user.
+- [ ] Include base résumé storage in encrypted backup/restore drills and treat backups as sensitive personal data.
+- [ ] Decide whether malware scanning is required before allowing less-trusted uploads or broader access.
 - [ ] Configure trusted reverse proxies explicitly before honoring any forwarded address/header; otherwise retain direct-address behavior.
 - [ ] Review host firewall, router rules, Tailscale policy, and confirm there is no port forwarding.
 - [ ] Run and document an encrypted backup and restore drill.

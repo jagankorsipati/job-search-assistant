@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError, authApi } from './api/auth';
+import { documentsApi, type BaseResumeMetadata } from './api/documents';
 import { profileApi, type CandidateProfile, type CareerFact } from './api/profile';
 
 vi.mock('./api/auth', async (original) => {
@@ -38,8 +39,21 @@ vi.mock('./api/profile', async (original) => {
     },
   };
 });
+vi.mock('./api/documents', async (original) => {
+  const actual = await original<typeof import('./api/documents')>();
+  return {
+    ...actual,
+    documentsApi: {
+      getBaseResume: vi.fn(),
+      uploadBaseResume: vi.fn(),
+      replaceBaseResume: vi.fn(),
+      downloadBaseResume: vi.fn(),
+    },
+  };
+});
 const api = vi.mocked(authApi);
 const profile = vi.mocked(profileApi);
+const documents = vi.mocked(documentsApi);
 
 const savedProfile: CandidateProfile = {
   id: 'profile-id',
@@ -88,6 +102,16 @@ const archivedFact: CareerFact = {
   version: 7,
 };
 
+const savedResume: BaseResumeMetadata = {
+  id: 'resume-id',
+  originalFilename: 'base-resume.pdf',
+  mediaType: 'application/pdf',
+  byteSize: 54,
+  createdAt: '2026-08-20T00:00:00Z',
+  updatedAt: '2026-08-21T00:00:00Z',
+  version: 2,
+};
+
 describe('authentication experience', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -106,6 +130,14 @@ describe('authentication experience', () => {
     profile.confirmFact.mockResolvedValue({ ...draftFact, status: 'CONFIRMED', version: 3 });
     profile.archiveFact.mockResolvedValue({ ...draftFact, status: 'ARCHIVED', version: 3 });
     profile.restoreFact.mockResolvedValue({ ...archivedFact, status: 'DRAFT', version: 8 });
+    documents.getBaseResume.mockRejectedValue(new ApiError(404));
+    documents.uploadBaseResume.mockResolvedValue(savedResume);
+    documents.replaceBaseResume.mockResolvedValue({
+      ...savedResume,
+      originalFilename: 'updated.docx',
+      version: 3,
+    });
+    documents.downloadBaseResume.mockResolvedValue(new Response(new Blob(['resume'])));
   });
 
   it('restores an authenticated admin session and exposes invitation controls', async () => {
@@ -276,6 +308,14 @@ describe('candidate profile workspace', () => {
       professionalDisplayName: 'Grace Hopper',
       version: 4,
     });
+    documents.getBaseResume.mockRejectedValue(new ApiError(404));
+    documents.uploadBaseResume.mockResolvedValue(savedResume);
+    documents.replaceBaseResume.mockResolvedValue({
+      ...savedResume,
+      originalFilename: 'updated.docx',
+      version: 3,
+    });
+    documents.downloadBaseResume.mockResolvedValue(new Response(new Blob(['resume'])));
   });
 
   async function openProfile(role: 'ADMIN' | 'MEMBER' = 'MEMBER') {
@@ -366,6 +406,70 @@ describe('candidate profile workspace', () => {
     expect(localStorage.length).toBe(0);
     expect(sessionStorage.length).toBe(0);
   });
+
+  it('uploads a selected base resume explicitly and shows metadata', async () => {
+    documents.getBaseResume.mockRejectedValue(new ApiError(404));
+    await openProfile();
+    expect(await screen.findByText(/no base resume is stored/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not confirm, import, or change your career facts/i),
+    ).toBeInTheDocument();
+    const file = new File(['%PDF-1.4\n%%EOF\n'], 'resume.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText(/resume file/i), { target: { files: [file] } });
+    expect(documents.uploadBaseResume).not.toHaveBeenCalled();
+    expect(screen.getByText(/selected: resume.pdf/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /^upload base resume$/i }));
+    await waitFor(() => expect(documents.uploadBaseResume).toHaveBeenCalledWith(file));
+    expect(await screen.findByText('base-resume.pdf')).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('downloads and replaces the base resume with expected version and conflict reload', async () => {
+    documents.getBaseResume.mockResolvedValue(savedResume);
+    const createObjectURL = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:resume');
+    const revokeObjectURL = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+    await openProfile();
+    expect(await screen.findByText('base-resume.pdf')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /download base resume/i }));
+    await waitFor(() => expect(documents.downloadBaseResume).toHaveBeenCalled());
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:resume');
+
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    documents.replaceBaseResume.mockRejectedValueOnce(new ApiError(409, 'stale_version'));
+    fireEvent.click(screen.getByRole('button', { name: /^replace$/i }));
+    const replacement = new File(['docx'], 'updated.docx', {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+    fireEvent.change(screen.getByLabelText(/resume file/i), { target: { files: [replacement] } });
+    fireEvent.click(screen.getByRole('button', { name: /^replace base resume$/i }));
+    await waitFor(() => expect(documents.replaceBaseResume).toHaveBeenCalledWith(replacement, 2));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/changed elsewhere/i);
+    documents.getBaseResume.mockResolvedValue({
+      ...savedResume,
+      originalFilename: 'latest.pdf',
+      version: 4,
+    });
+    fireEvent.click(screen.getByRole('button', { name: /reload latest resume/i }));
+    expect(await screen.findByText('latest.pdf')).toBeInTheDocument();
+  });
+
+  it('rejects invalid base resume selections and returns to login on document 401', async () => {
+    await openProfile();
+    const textFile = new File(['hello'], 'resume.txt', { type: 'text/plain' });
+    fireEvent.change(await screen.findByLabelText(/resume file/i), {
+      target: { files: [textFile] },
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(/pdf or docx/i);
+    expect(documents.uploadBaseResume).not.toHaveBeenCalled();
+  });
+
+  it('returns to login when the document metadata session expires', async () => {
+    documents.getBaseResume.mockRejectedValue(new ApiError(401));
+    await openProfile();
+    expect(await screen.findByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  });
 });
 
 describe('career facts workspace', () => {
@@ -393,6 +497,14 @@ describe('career facts workspace', () => {
     profile.confirmFact.mockResolvedValue({ ...draftFact, status: 'CONFIRMED', version: 3 });
     profile.archiveFact.mockResolvedValue({ ...draftFact, status: 'ARCHIVED', version: 3 });
     profile.restoreFact.mockResolvedValue({ ...archivedFact, status: 'DRAFT', version: 8 });
+    documents.getBaseResume.mockResolvedValue(savedResume);
+    documents.uploadBaseResume.mockResolvedValue(savedResume);
+    documents.replaceBaseResume.mockResolvedValue({
+      ...savedResume,
+      originalFilename: 'updated.docx',
+      version: 3,
+    });
+    documents.downloadBaseResume.mockResolvedValue(new Response(new Blob(['resume'])));
   });
 
   async function renderProfile() {

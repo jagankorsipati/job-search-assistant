@@ -46,6 +46,24 @@ export async function apiPut<T>(url: string, body?: unknown): Promise<T> {
   return apiWrite<T>('PUT', url, body);
 }
 
+export async function apiPostForm<T>(url: string, body: FormData): Promise<T> {
+  return apiWriteForm<T>('POST', url, body);
+}
+
+export async function apiPutForm<T>(url: string, body: FormData): Promise<T> {
+  return apiWriteForm<T>('PUT', url, body);
+}
+
+export async function apiDownload(url: string): Promise<Response> {
+  const response = await fetch(url, {
+    headers: { 'Cache-Control': 'no-store' },
+    cache: 'no-store',
+  });
+  if (response.status === 401) resetCsrf();
+  if (!response.ok) throw await apiError(response);
+  return response;
+}
+
 async function apiWrite<T>(method: 'POST' | 'PUT', url: string, body?: unknown): Promise<T> {
   const token = await csrfToken();
   const response = await fetch(url, {
@@ -62,6 +80,23 @@ async function apiWrite<T>(method: 'POST' | 'PUT', url: string, body?: unknown):
   if (response.status === 401) resetCsrf();
   if (!response.ok) throw await apiError(response);
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+}
+
+async function apiWriteForm<T>(method: 'POST' | 'PUT', url: string, body: FormData): Promise<T> {
+  const token = await csrfToken();
+  const response = await fetch(url, {
+    method,
+    headers: {
+      Accept: 'application/json',
+      'Cache-Control': 'no-store',
+      [token.headerName]: token.token,
+    },
+    cache: 'no-store',
+    body,
+  });
+  if (response.status === 401) resetCsrf();
+  if (!response.ok) throw await apiError(response);
+  return (await response.json()) as T;
 }
 
 async function apiError(response: Response): Promise<ApiError> {
