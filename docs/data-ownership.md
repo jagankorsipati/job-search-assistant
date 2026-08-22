@@ -37,6 +37,8 @@
 - User-local unique constraints include `owner_account_id` where appropriate.
 - Owner-scoped indexes generally begin with `owner_account_id`.
 - Background work carries an explicit owner or separately reviewed system authority.
+- Profile API requests never include trusted owner fields. Creation, update, collection, and lifecycle-transition services derive ownership from `CurrentActorProvider.currentActor()` and pass the owner UUID explicitly into repository methods.
+- Candidate-profile and career-fact responses do not return `owner_account_id`; ownership is enforced beneath the response boundary.
 
 Non-owned and nonexistent individual resources both return `404`; no preliminary unscoped lookup reveals ownership. Owner-filtered collections return an empty result when there are no visible rows. `ADMIN` has no private-resource bypass. Explicit administrative operations use separate role-protected APIs. PostgreSQL row-level security remains deferred pending a demonstrated operational need and a reviewed connection-pooling design.
 

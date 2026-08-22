@@ -30,6 +30,8 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Owner-scoped SQL is mandatory for reads, updates, deletes, collections, and bulk operations. Non-owned and nonexistent resources share `404` behavior; administrators do not bypass private ownership.
 - Background operations require explicit owner or reviewed system authority.
 - Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
+- `/api/profile/**` endpoints require authentication. POST and PUT lifecycle operations require CSRF through the existing browser-session protection.
+- Profile and career-fact APIs use safe JSON errors: `400` for malformed input, `401` for unauthenticated access, `404` for nonexistent or non-owned private resources, and `409` for uniqueness, stale-version, or lifecycle conflicts.
 - The first administrator requires an explicit one-time operator bootstrap that will be designed in Phase 2B; no administrator or credential is seeded.
 - Account recovery and delegated access remain deferred. Delegation requires an explicit, revocable owner grant and a separate decision.
 - Browser sessions are opaque and PostgreSQL-backed. Cookies are Secure by default, HttpOnly, and SameSite=Strict; successful login rotates the anonymous CSRF session ID. Direct local HTTP development must explicitly set `SESSION_COOKIE_SECURE=false`.
@@ -67,6 +69,8 @@ Résumés, contact details, work history, education, notes, job activity, creden
 ## Candidate-profile privacy
 
 The profile module stores professional-display and matching-oriented information only. It must not store passwords, credentials, Social Security numbers, immigration document numbers, birth dates, full home addresses, government identification, salary history, or references' private contact information. Work authorization may be captured only as a user-authored statement, not as document numbers or images.
+
+Candidate-profile `careerSummary` is owner-authored presentation text. It must not override confirmed career facts or serve as evidence for unsupported generated claims.
 
 ## Network posture
 

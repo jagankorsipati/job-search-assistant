@@ -18,6 +18,8 @@
 - **FR-011:** Facts have draft, confirmed, or archived status. Confirmed means account-owner attested, not independently verified.
 - **FR-012:** Users can upload a DOCX base résumé and confirm extracted facts.
 - **FR-013:** AI or imported output cannot mark a fact confirmed automatically.
+- **FR-014:** Profile and career-fact APIs are owner-scoped, optimistic-lock protected, and require explicit confirmation attestation before a draft fact becomes confirmed.
+- **FR-015:** Archived career facts are retained history and are excluded from new generated content; physical deletion is deferred.
 
 ## Jobs and analysis
 

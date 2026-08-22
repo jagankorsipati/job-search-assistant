@@ -102,12 +102,56 @@ public final class CareerFact {
         return ownerAccountId;
     }
 
+    public UUID id() {
+        return id;
+    }
+
+    public CareerFactCategory category() {
+        return category;
+    }
+
     public CareerFactStatus status() {
         return status;
     }
 
     public String factualContent() {
         return factualContent;
+    }
+
+    public String organization() {
+        return organization;
+    }
+
+    public String title() {
+        return title;
+    }
+
+    public String location() {
+        return location;
+    }
+
+    public LocalDate startedOn() {
+        return startedOn;
+    }
+
+    public LocalDate endedOn() {
+        return endedOn;
+    }
+
+    public boolean ongoing() {
+        return ongoing;
+    }
+
+    public Instant createdAt() {
+        return createdAt;
+    }
+
+    public Instant updatedAt() {
+        return updatedAt;
+    }
+
+    public long version() {
+        return version;
     }
 
     private CareerFact withStatus(CareerFactStatus newStatus) {

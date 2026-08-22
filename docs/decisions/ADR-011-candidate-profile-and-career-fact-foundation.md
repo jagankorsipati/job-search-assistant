@@ -36,3 +36,15 @@ Evidence/document linkage, base resume upload, extraction review, generated resu
 - Structured facts preserve future matching ability without prematurely modeling resume presentation.
 - The profile module depends only on the published `identity::actor` interface when application services are later added.
 - Account deletion remains restricted until a reviewed owner-data deletion flow exists.
+
+## Phase 3B API Decision
+
+Profile HTTP and application services are owned by the profile module. They derive the owner UUID only from `CurrentActorProvider.currentActor()` and never accept owner or account identifiers from request DTOs. Responses omit `owner_account_id`, login names, session information, identity internals, and audit internals.
+
+The production API is `GET`, `POST`, and `PUT /api/profile`; `GET` and `POST /api/profile/career-facts`; `GET` and `PUT /api/profile/career-facts/{factId}`; and `POST /api/profile/career-facts/{factId}/confirm`, `/archive`, and `/restore`.
+
+All individual profile and fact reads, updates, and transitions use owner-scoped SQL. Stale optimistic-lock versions and invalid lifecycle transitions return safe conflicts. Missing and non-owned facts return the same not-found response. Collections filter by owner and support only exact enum filters plus a bounded result limit of 100.
+
+Profile creation uses the database uniqueness constraint as the concurrency authority. Profile/fact updates and fact transitions use `id`, `owner_account_id`, and expected `version` predicates, incrementing `version` and `updated_at` atomically.
+
+Fact creation always creates `DRAFT`. Confirmation requires `confirmedAccurate=true`; false or missing attestation is rejected. Confirmation remains owner-attested only. Archival is the Phase 3B removal mechanism; physical deletion remains deferred. Frontend profile management is deferred to Phase 3C.

@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 3A complete. The profile module now has an owner-scoped candidate-profile and career-fact foundation with a draft, confirmed, and archived truthfulness lifecycle. Phase 3 remains in progress; no profile endpoints, resume upload, AI extraction, or generated documents are included yet.
+Phase 3B complete. The profile module now has authenticated, owner-scoped candidate-profile and career-fact APIs with optimistic locking, explicit confirmation attestation, and archive/restore lifecycle transitions. Phase 3 remains in progress; frontend profile management, resume upload, AI extraction, and generated documents are not included yet.
 
 ## Planned capabilities
 
@@ -99,6 +99,8 @@ Local household setup proceeds in this order: bootstrap the first administrator,
 Compromised-password screening is entirely offline. Provenance and the reviewed update command are documented in [the blocklist guide](docs/security/compromised-password-blocklist.md).
 
 The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
+
+Profile API endpoints live under `/api/profile`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/profile/career-facts` supports exact `category` and `status` enum filters plus a bounded `limit` of 1 through 100. State-changing requests require CSRF. Stale versions and invalid fact transitions return safe conflicts; nonexistent and non-owned resources share not-found behavior.
 
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
@@ -196,4 +198,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 3: continue from the Phase 3A candidate profile and career-fact foundation into manual profile management and safe base-résumé handling while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
+Phase 3: continue from the Phase 3B profile API foundation into frontend profile management, then safe base-résumé handling while preserving owner isolation and résumé truthfulness. Recovery, deletion, role changes, additional administrators, delegated access, AI, and job scraping remain out of scope.
