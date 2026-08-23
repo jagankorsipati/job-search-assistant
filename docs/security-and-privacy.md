@@ -96,6 +96,10 @@ Capturing a job, saving a URL reference, generating or downloading a resume, or 
 
 Phase 4B exposes only authenticated `/api/jobs/**` APIs. State-changing job requests require CSRF through the existing browser-session protection. Responses use `Cache-Control: no-store` and omit owner identifiers. Nonexistent and non-owned jobs or snapshots share the same safe `404` response. URL-reference capture stores only the normalized reference; no outbound HTTP client or fetch path is introduced.
 
+Phase 4C exposes only authenticated `/api/applications/**` APIs. State-changing application requests require CSRF, use optimistic `expectedVersion`, and return safe JSON envelopes for malformed input, unauthenticated access, missing/non-owned resources, stale versions, duplicate applications, invalid transitions, and archival conflicts. Responses use `Cache-Control: no-store` and omit owner, account, session, IP, user-agent, and audit metadata. Application creation validates the referenced captured job through a narrow jobs-module interface that exposes only job ID, owner match, and archive state. Status history is append-only domain history, not a security audit log.
+
+`WITHDRAWN` is truthful before or after submission. Phase 4C adds V9 to correct the original V8 constraint so a pre-application withdrawal does not fabricate `appliedAt`; post-application withdrawal preserves the existing timestamp. `READY_TO_APPLY -> APPLIED` accepts an optional user-entered timestamp only within a five-minute future clock-skew tolerance, otherwise uses the server clock. Terminal statuses clear next actions while preserving notes and immutable history.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

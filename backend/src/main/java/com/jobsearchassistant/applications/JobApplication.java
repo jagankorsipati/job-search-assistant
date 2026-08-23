@@ -39,7 +39,7 @@ public final class JobApplication {
         if (appliedAt == null && status.atOrAfterApplied()) {
             throw new IllegalArgumentException("appliedAt is required for APPLIED or later statuses");
         }
-        if (appliedAt != null && !status.atOrAfterApplied()) {
+        if (appliedAt != null && !status.atOrAfterApplied() && status != ApplicationStatus.WITHDRAWN) {
             throw new IllegalArgumentException("appliedAt must be absent before APPLIED");
         }
         if (status.terminal() && nextAction != null) {

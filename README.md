@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 4 is in progress. Phase 4B adds authenticated owner-scoped APIs for captured jobs, immutable job-description snapshots, metadata updates, and job archive/restore. Application-status APIs, frontend workspace, scraping, URL fetching, AI analysis, reminders, and application submission are not included yet.
+Phase 4 is in progress. Phase 4C adds authenticated owner-scoped APIs for application tracking, explicit status transitions, append-only status history, notes, next actions, and application archive/restore. Job/application frontend workspace, scraping, URL fetching, AI analysis, reminders, and application submission are not included yet.
 
 ## Planned capabilities
 
@@ -108,6 +108,10 @@ Job API endpoints live under `/api/jobs`. They derive ownership from the validat
 
 Snapshot endpoints live under `/api/jobs/{jobId}/snapshots`. Lists are oldest-first by sequence and capped at 50. Appending locks the owner-scoped parent job, rejects archived jobs, canonicalizes LF line endings, SHA-256 digests the canonical text, and inserts the next sequence atomically. Reposting canonical duplicate content as the latest snapshot returns `409 duplicate_snapshot`. Posting URLs are stored only as HTTP/HTTPS references, fragments are removed, credentials are rejected, and the server never fetches URL content.
 
+Application API endpoints live under `/api/applications`. They derive ownership from the validated server-side actor, never from request JSON, and return no owner identifiers. `GET /api/applications` returns only the actor's applications, defaults to active rows, supports `archived=true`, exact `status`, and a bounded `limit` of 1 through 100. `POST /api/applications` creates one DRAFT application for an active owner-scoped captured job and atomically writes the initial DRAFT history event. `GET`/`PUT /api/applications/{applicationId}` read and update private notes plus next action metadata with optimistic locking; updates do not change status or append history. `/transitions` performs explicit versioned status changes and appends one immutable history event in the same transaction. `/history` is oldest-first and capped at 100. `/archive` and `/restore` are explicit versioned archival operations and do not change status or history.
+
+Application status is user-declared. `READY_TO_APPLY -> APPLIED` establishes `appliedAt` from a truthful user-provided timestamp or the server clock, rejects values more than five minutes in the future, and later transitions preserve it. `WITHDRAWN` may happen before or after submission; pre-application withdrawal keeps `appliedAt` absent, while post-application withdrawal preserves it. Terminal outcomes clear next actions but preserve notes and history. No job capture, resume action, document generation, AI output, or download implies an application status.
+
 The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
 
 The profile form never autosaves. It sends the current version on update and preserves unsaved edits when a `409` conflict indicates the server changed elsewhere. Career facts are created as draft. Confirmed means the account owner explicitly attested that the fact is accurate; it is not independent verification by an employer, school, certification authority, or the application. Editing a confirmed fact returns it to draft. Draft and confirmed facts can be archived after confirmation; archived facts can be restored to draft, but cannot be edited until restored. Hard deletion remains deferred.
@@ -208,4 +212,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 4C: add application status/history APIs. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, and job scraping remain out of scope.
+Phase 4D: add the job/application frontend workspace. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, and job scraping remain out of scope.

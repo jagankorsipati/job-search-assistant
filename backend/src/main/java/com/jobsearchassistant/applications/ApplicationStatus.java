@@ -30,7 +30,7 @@ public enum ApplicationStatus {
 
     public boolean atOrAfterApplied() {
         return this == APPLIED || this == INTERVIEWING || this == OFFER || this == ACCEPTED
-                || this == REJECTED || this == WITHDRAWN;
+                || this == REJECTED;
     }
 
     public boolean canTransitionTo(ApplicationStatus next) {

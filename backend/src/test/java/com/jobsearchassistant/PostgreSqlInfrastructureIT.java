@@ -53,7 +53,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9");
     }
 
     @Test
@@ -333,6 +333,7 @@ class PostgreSqlInfrastructureIT {
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> insertJobApplication(firstOwner, UUID.randomUUID(), "APPLIED", null))
                 .isInstanceOf(DataIntegrityViolationException.class);
+        insertJobApplication(firstOwner, insertCapturedJob(firstOwner, "MANUAL"), "WITHDRAWN", null);
         assertThatThrownBy(() -> insertHistory(secondOwner, applicationId, null, "DRAFT"))
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> insertHistory(firstOwner, applicationId, null, "APPLIED"))

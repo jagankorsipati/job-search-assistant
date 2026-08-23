@@ -37,14 +37,19 @@
 - **FR-027:** Stored posting URLs are references only; the server does not fetch URL content during Phase 4A.
 - **FR-028:** Authenticated job APIs derive ownership server-side, never accept trusted owner identifiers, and keep non-owned and nonexistent jobs indistinguishable.
 - **FR-029:** Description snapshot appends are immutable, owner-scoped, sequence-ordered, bounded, and reject the latest canonical duplicate content for the same owner/job.
+- **FR-030:** Authenticated application APIs create at most one owner-scoped application per owner/job, reject archived or non-owned jobs safely, and never accept trusted owner, initial status, applied timestamp, or history fields from the browser.
+- **FR-031:** Application reads, lists, notes, next actions, transitions, history, archive, and restore are owner-scoped, no-store, optimistic-lock protected where mutated, and provide no administrator cross-user bypass.
+- **FR-032:** Application status transitions follow the documented matrix, append exactly one immutable history event atomically with each accepted status change, and never infer application progress from job capture, resume/document actions, AI, or downloads.
+- **FR-033:** `READY_TO_APPLY -> APPLIED` establishes a truthful `appliedAt`; later status changes preserve it. `WITHDRAWN` can occur before or after submission without fabricating or erasing `appliedAt`.
+- **FR-034:** Terminal application states clear next actions and reject new next actions while preserving private notes, final status, applied timestamp when present, and status history.
 
 ## Documents
 
-- **FR-030:** Tailoring uses only verified facts.
-- **FR-031:** Users see original and proposed content before approval.
-- **FR-032:** Exports record their source resume, job, approved changes, and creation time.
-- **FR-033:** Users can generate and edit grounded cover-letter drafts.
-- **FR-034:** The system preserves the original resume.
+- **FR-035:** Tailoring uses only verified facts.
+- **FR-036:** Users see original and proposed content before approval.
+- **FR-037:** Exports record their source resume, job, approved changes, and creation time.
+- **FR-038:** Users can generate and edit grounded cover-letter drafts.
+- **FR-039:** The system preserves the original resume.
 
 ## Applications
 

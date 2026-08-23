@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.UUID;
 
 import com.jobsearchassistant.identity.api.CurrentActorProvider;
+import com.jobsearchassistant.jobs.api.CapturedJobReference;
+import com.jobsearchassistant.jobs.api.CapturedJobReferenceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
@@ -13,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @ConditionalOnProperty(name = "identity.persistence.enabled", havingValue = "true", matchIfMissing = true)
-class JobService {
+class JobService implements CapturedJobReferenceProvider {
     static final int DEFAULT_JOB_LIMIT = 100;
     static final int MAX_JOB_LIMIT = 100;
     static final int DEFAULT_SNAPSHOT_LIMIT = 50;
@@ -42,6 +44,13 @@ class JobService {
     @Transactional(readOnly = true)
     public CapturedJob getJob(UUID jobId) {
         return repository.findJob(jobId, owner()).orElseThrow(JobNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<CapturedJobReference> findOwnedJob(UUID jobId, UUID ownerAccountId) {
+        return repository.findJob(jobId, ownerAccountId)
+                .map(job -> new CapturedJobReference(job.id(), job.ownerAccountId(), job.archived()));
     }
 
     @Transactional

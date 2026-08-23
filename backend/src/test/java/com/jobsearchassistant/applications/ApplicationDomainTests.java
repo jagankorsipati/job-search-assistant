@@ -37,6 +37,9 @@ class ApplicationDomainTests {
         assertThatThrownBy(() -> new JobApplication(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 ApplicationStatus.APPLIED, null, null, null, now, now, now, 0, null))
                 .hasMessageContaining("appliedAt is required");
+        JobApplication withdrawnBeforeApplying = new JobApplication(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
+                ApplicationStatus.WITHDRAWN, null, null, null, now, now, now, 0, null);
+        assertThat(withdrawnBeforeApplying.appliedAt()).isNull();
         assertThatThrownBy(() -> new JobApplication(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
                 ApplicationStatus.READY_TO_APPLY, now, null, null, now, now, now, 0, null))
                 .hasMessageContaining("appliedAt must be absent");
