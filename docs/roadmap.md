@@ -35,13 +35,13 @@ Each milestone should be independently reviewable and committable.
 - Phase 3E complete: owner-scoped base résumé upload, metadata inspection, replacement, attachment download, V7 schema, local storage abstraction, validation, privacy, and real-browser verification
 - Manual profile management before automated extraction remains the Phase 3 posture
 
-## Phase 4 — Job workspace
+## Phase 4 — Job workspace (complete)
 
 - Phase 4A complete: owner-scoped captured-job, immutable job-description snapshot, job-application, and application-status-history domain/schema foundation
 - Phase 4B complete: authenticated owner-scoped job capture, metadata update, immutable description-snapshot, and archive/restore APIs
 - Phase 4C complete: authenticated owner-scoped application tracking, next-action metadata, explicit status transitions, append-only status-history APIs, optimistic locking, and application archive/restore
 - Phase 4D complete: authenticated `/jobs` and `/applications` frontend workspaces with active/archived lists, job capture, immutable snapshot display/append, draft application creation, explicit status transitions, status history, notes, next actions, archive/restore, session-expiry handling, and optimistic-conflict recovery without browser persistence
-- Phase 4E next: duplicate warnings, search/filter refinement, and full real-browser job/application verification
+- Phase 4E complete: deterministic local duplicate warnings, job/application search and filter refinement, and real-browser job/application lifecycle, isolation, conflict, CSRF, privacy, and sanitized-diagnostic verification
 
 ## Phase 5 — Deterministic fit analysis
 

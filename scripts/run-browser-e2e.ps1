@@ -108,7 +108,7 @@ function Write-SafeDiagnostics {
     if (Test-Path -LiteralPath $rawPlaywrightRoot) {
         $safePlaywrightLines = Get-ChildItem -LiteralPath $rawPlaywrightRoot -Recurse -File -Filter 'error-context.md' |
             ForEach-Object { Get-Content -LiteralPath $_.FullName } |
-            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security)\.spec\.ts)' } |
+            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security|job-application-security)\.spec\.ts)' } |
             ForEach-Object {
                 $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
                    -replace '(?i)\b[\w .-]+\.(pdf|docx)\b', '[REDACTED-FILENAME]' `
@@ -147,6 +147,15 @@ function Start-Backend {
     $env:DB_PASSWORD = 'e2e_only_not_a_secret'
     $env:SESSION_COOKIE_SECURE = 'false'
     $env:BASE_RESUME_STORAGE_ROOT = $resumeStorageRoot
+    # E2E-only: the Playwright suite's specs each authenticate the one shared
+    # administrator account (invitations, cross-owner checks), which can
+    # legitimately exceed the production per-login-name rate limit within a
+    # single 15-minute window once specs run back to back or are re-run for
+    # order-independence verification. This override is process-scoped to
+    # this disposable backend only; application.properties keeps the shipped
+    # production default unchanged (see LoginRateLimiterProductionDefaultsTests).
+    $env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS = '50'
+    $env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS = '200'
     $env:IDENTITY_BOOTSTRAP_ENABLED = $Bootstrap.ToString().ToLowerInvariant()
     if ($Bootstrap) {
         $env:IDENTITY_BOOTSTRAP_LOGIN = 'e2e.admin'
@@ -195,7 +204,7 @@ try {
         -WorkingDirectory $frontendRoot -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
-    Write-Host 'Running Playwright identity, profile, and base resume security journeys.' -ForegroundColor Cyan
+    Write-Host 'Running Playwright identity, profile, base resume, job, and application security journeys.' -ForegroundColor Cyan
     Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
     $succeeded = $true
 }
@@ -211,7 +220,8 @@ finally {
     }
     Remove-Item Env:E2E_ADMIN_PASSWORD, Env:E2E_MEMBER_PASSWORD, Env:IDENTITY_BOOTSTRAP_ENABLED, `
         Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD, `
-        Env:BASE_RESUME_STORAGE_ROOT -ErrorAction SilentlyContinue
+        Env:BASE_RESUME_STORAGE_ROOT, Env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS, Env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS `
+        -ErrorAction SilentlyContinue
     $previousErrorAction = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     & docker compose -p $projectName -f $composeFile down --volumes --remove-orphans *> $null
@@ -224,4 +234,4 @@ finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'Browser identity, profile, and base resume E2E verification passed.' -ForegroundColor Green
+Write-Host 'Browser identity, profile, base resume, job, and application E2E verification passed.' -ForegroundColor Green

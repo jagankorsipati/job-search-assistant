@@ -10,6 +10,8 @@ import {
 } from '../../api/applications';
 import { jobsApi, type CapturedJob } from '../../api/jobs';
 
+type DueFilter = '' | 'overdue' | 'today' | 'upcoming' | 'no_due';
+
 export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) {
   const [archived, setArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | ''>('');
@@ -42,6 +44,8 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
     note: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [searchText, setSearchText] = useState('');
+  const [dueFilter, setDueFilter] = useState<DueFilter>('');
 
   const jobById = useMemo(() => new Map(jobs.map((job) => [job.id, job])), [jobs]);
   const applicationJobIds = useMemo(
@@ -49,6 +53,19 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
     [applications],
   );
   const availableJobs = jobs.filter((job) => !job.archived && !applicationJobIds.has(job.id));
+  const filteredApplications = useMemo(
+    () =>
+      applications.filter((application) =>
+        matchesApplicationFilters(
+          application,
+          jobById.get(application.jobId),
+          searchText,
+          dueFilter,
+        ),
+      ),
+    [applications, dueFilter, jobById, searchText],
+  );
+  const localFiltersActive = searchText.trim() !== '' || dueFilter !== '';
 
   const loadLists = useCallback(async () => {
     setMode('loading');
@@ -336,6 +353,45 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
               ))}
             </select>
           </label>
+          <div className="filter-bar" aria-label="Application filters">
+            <label>
+              Search loaded applications
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Company, title, notes, or next action"
+              />
+            </label>
+            <label>
+              Due state
+              <select
+                value={dueFilter}
+                onChange={(event) => setDueFilter(event.target.value as DueFilter)}
+              >
+                <option value="">All due states</option>
+                <option value="overdue">Overdue</option>
+                <option value="today">Due today</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="no_due">No due date</option>
+              </select>
+            </label>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={!localFiltersActive && !statusFilter}
+              onClick={() => {
+                setSearchText('');
+                setDueFilter('');
+                setStatusFilter('');
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+          <p className="inline-note" role="status" aria-live="polite">
+            Showing {filteredApplications.length} of {applications.length} loaded{' '}
+            {archived ? 'archived' : 'active'} applications.
+          </p>
           {createOpen && (
             <form
               className="profile-form compact-form"
@@ -389,12 +445,14 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
                   ? 'No archived applications.'
                   : 'No active applications yet.'}
             </p>
+          ) : filteredApplications.length === 0 ? (
+            <p className="empty-note">No loaded applications match these filters.</p>
           ) : (
             <ul
               className="record-list"
               aria-label={archived ? 'Archived applications' : 'Active applications'}
             >
-              {applications.map((application) => {
+              {filteredApplications.map((application) => {
                 const job = jobById.get(application.jobId);
                 return (
                   <li key={application.id}>
@@ -755,9 +813,50 @@ function terminal(status: ApplicationStatus) {
   return status === 'ACCEPTED' || status === 'REJECTED' || status === 'WITHDRAWN';
 }
 
+function matchesApplicationFilters(
+  application: JobApplication,
+  job: CapturedJob | undefined,
+  searchText: string,
+  dueFilter: DueFilter,
+) {
+  const query = normalizeText(searchText);
+  if (
+    query &&
+    ![
+      job?.companyName ?? '',
+      job?.jobTitle ?? '',
+      application.privateNotes ?? '',
+      application.nextActionText ?? '',
+    ].some((value) => normalizeText(value).includes(query))
+  ) {
+    return false;
+  }
+  if (!dueFilter) return true;
+  return dueState(application.nextActionDueDate) === dueFilter;
+}
+
+function dueState(value: string | null | undefined): DueFilter {
+  if (!value) return 'no_due';
+  const today = new Date();
+  const todayKey = dateKey(today);
+  if (value < todayKey) return 'overdue';
+  if (value === todayKey) return 'today';
+  return 'upcoming';
+}
+
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase().replaceAll(/\s+/g, ' ');
+}
+
+function dateKey(value: Date) {
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const day = String(value.getDate()).padStart(2, '0');
+  return `${value.getFullYear()}-${month}-${day}`;
 }
 
 function label(value: string) {

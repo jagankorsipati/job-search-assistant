@@ -166,6 +166,32 @@ const savedJob: CapturedJob = {
   archived: false,
 };
 
+const archivedJob: CapturedJob = {
+  ...savedJob,
+  id: 'archived-job-id',
+  companyName: 'Globex',
+  jobTitle: 'Data Engineer',
+  workLocation: 'Hybrid',
+  postingUrl: 'https://globex.test/jobs/data',
+  sourceType: 'URL_REFERENCE',
+  employmentType: 'CONTRACT',
+  externalPostingId: 'GLOBEX-77',
+  archivedAt: '2026-08-22T00:00:00Z',
+  archived: true,
+};
+
+const differentJob: CapturedJob = {
+  ...savedJob,
+  id: 'different-job-id',
+  companyName: 'Initech',
+  jobTitle: 'Support Specialist',
+  workLocation: 'Austin',
+  postingUrl: 'https://initech.test/jobs/support',
+  sourceType: 'PASTED_DESCRIPTION',
+  employmentType: 'PART_TIME',
+  externalPostingId: 'INI-12',
+};
+
 const savedSnapshot: JobDescriptionSnapshot = {
   id: 'snapshot-id',
   jobId: 'job-id',
@@ -828,6 +854,113 @@ describe('job and application workspaces', () => {
     expect(await screen.findByText(/no archived jobs/i)).toBeInTheDocument();
   });
 
+  it('filters loaded jobs by case-insensitive search, source, employment, and clears filters', async () => {
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [archivedJob] : [savedJob, differentJob]),
+    );
+    await openJobs();
+    expect(await screen.findByText(/showing 2 of 2 loaded active jobs/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/search loaded jobs/i), {
+      target: { value: '  acME  ' },
+    });
+    expect(await screen.findByText(/showing 1 of 2 loaded active jobs/i)).toBeInTheDocument();
+    let activeJobsList = screen.getByRole('list', { name: /active jobs/i });
+    expect(activeJobsList).toHaveTextContent('Acme');
+    expect(activeJobsList).not.toHaveTextContent('Initech');
+    fireEvent.change(screen.getByLabelText(/^source$/i), {
+      target: { value: 'PASTED_DESCRIPTION' },
+    });
+    expect(await screen.findByText(/no loaded jobs match these filters/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/search loaded jobs/i), { target: { value: '' } });
+    expect(await screen.findByText('Initech')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^employment$/i), {
+      target: { value: 'FULL_TIME' },
+    });
+    expect(await screen.findByText(/no loaded jobs match these filters/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+    expect(await screen.findByText(/showing 2 of 2 loaded active jobs/i)).toBeInTheDocument();
+    activeJobsList = screen.getByRole('list', { name: /active jobs/i });
+    expect(activeJobsList).toHaveTextContent('Acme');
+    expect(activeJobsList).toHaveTextContent('Initech');
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('warns for exact posting URL duplicates, lets the owner review, and does not persist warning data', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
+    fireEvent.change(screen.getAllByLabelText(/company name/i)[0]!, {
+      target: { value: 'Another Acme' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/job title/i)[0]!, {
+      target: { value: 'Similar Role' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/source type/i)[0]!, {
+      target: { value: 'URL_REFERENCE' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/posting url/i)[0]!, {
+      target: { value: 'https://example.test/job/' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/exact posting url match/i);
+    expect(jobs.captureJob).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: /review existing job/i }));
+    expect(await screen.findByRole('heading', { name: 'Acme' })).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('warns for external posting ID with matching context and still allows intentional capture', async () => {
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [{ ...savedJob, externalPostingId: 'ACME-42' }]),
+    );
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
+    fireEvent.change(screen.getAllByLabelText(/company name/i)[0]!, {
+      target: { value: ' acme ' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/job title/i)[0]!, {
+      target: { value: 'Platform Engineer II' },
+    });
+    fireEvent.change(screen.getByLabelText(/external posting id/i), {
+      target: { value: ' acme-42 ' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/external posting id/i);
+    fireEvent.click(screen.getByRole('button', { name: /continue capturing/i }));
+    await waitFor(() => expect(jobs.captureJob).toHaveBeenCalled());
+  });
+
+  it('warns for possible company-title duplicates but not clearly different jobs', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
+    fireEvent.change(screen.getAllByLabelText(/company name/i)[0]!, {
+      target: { value: 'ACME' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/job title/i)[0]!, {
+      target: { value: ' platform   engineer ' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/work location/i)[0]!, {
+      target: { value: 'Remote' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/same company and job title/i);
+    fireEvent.click(screen.getByRole('button', { name: /continue capturing/i }));
+    await waitFor(() => expect(jobs.captureJob).toHaveBeenCalledTimes(1));
+
+    jobs.captureJob.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
+    fireEvent.change(screen.getAllByLabelText(/company name/i)[0]!, {
+      target: { value: 'Different Co' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/job title/i)[0]!, {
+      target: { value: 'Different Role' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    await waitFor(() => expect(jobs.captureJob).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/this looks similar/i)).not.toBeInTheDocument();
+  });
+
   it('captures jobs with validation, renders initial snapshot, and never fetches posting URLs', async () => {
     await openJobs();
     fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
@@ -915,6 +1048,56 @@ describe('job and application workspaces', () => {
         limit: 100,
       }),
     );
+  });
+
+  it('filters loaded applications by status, text, due state, and clears filters without storage', async () => {
+    const overdueApplication = {
+      ...savedApplication,
+      id: 'overdue-application',
+      jobId: 'different-job-id',
+      status: 'DRAFT' as const,
+      nextActionText: 'Send follow-up',
+      nextActionDueDate: '2026-01-01',
+    };
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [savedJob, differentJob]),
+    );
+    applications.listApplications.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [savedApplication, overdueApplication]),
+    );
+    window.history.replaceState(null, '', '/applications');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: /^applications$/i })).toBeInTheDocument();
+    expect(
+      await screen.findByText(/showing 2 of 2 loaded active applications/i),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/search loaded applications/i), {
+      target: { value: 'initech' },
+    });
+    expect(
+      await screen.findByText(/showing 1 of 2 loaded active applications/i),
+    ).toBeInTheDocument();
+    const activeApplicationsList = screen.getByRole('list', { name: /active applications/i });
+    expect(activeApplicationsList).toHaveTextContent('Initech');
+    expect(activeApplicationsList).not.toHaveTextContent('Acme');
+    fireEvent.change(screen.getByLabelText(/due state/i), { target: { value: 'upcoming' } });
+    expect(
+      await screen.findByText(/no loaded applications match these filters/i),
+    ).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^status$/i), { target: { value: 'DRAFT' } });
+    await waitFor(() =>
+      expect(applications.listApplications).toHaveBeenLastCalledWith({
+        archived: false,
+        status: 'DRAFT',
+        limit: 100,
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+    expect(
+      await screen.findByText(/showing 2 of 2 loaded active applications/i),
+    ).toBeInTheDocument();
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
   });
 
   it('creates a draft application without owner or initial status fields and handles duplicates safely', async () => {

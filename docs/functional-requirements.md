@@ -29,7 +29,7 @@
 
 - **FR-020:** Users can save pasted job text and manually supplied URLs.
 - **FR-021:** Users can edit job title, company, location, source, and description.
-- **FR-022:** The system warns about likely duplicates.
+- **FR-022:** The frontend warns about likely duplicates within the currently loaded owner-visible job collection using deterministic normalized URL, external posting ID, and company/title comparisons. Warnings are non-blocking and do not perform cross-owner lookup.
 - **FR-023:** Fit analysis classifies requirements and links matches to verified evidence.
 - **FR-024:** Unknown or missing requirements remain visible as gaps.
 - **FR-025:** Captured jobs are owner-scoped opportunities and do not imply that the owner applied.
@@ -42,24 +42,25 @@
 - **FR-032:** Application status transitions follow the documented matrix, append exactly one immutable history event atomically with each accepted status change, and never infer application progress from job capture, resume/document actions, AI, or downloads.
 - **FR-033:** `READY_TO_APPLY -> APPLIED` establishes a truthful `appliedAt`; later status changes preserve it. `WITHDRAWN` can occur before or after submission without fabricating or erasing `appliedAt`.
 - **FR-034:** Terminal application states clear next actions and reject new next actions while preserving private notes, final status, applied timestamp when present, and status history.
-- **FR-035:** The authenticated frontend job workspace lets owners capture jobs, edit metadata, view active/archived jobs, archive/restore jobs, view oldest-first immutable description snapshots, and append new snapshots without sending owner identifiers or fetching posting URLs.
-- **FR-036:** The authenticated frontend application workspace lets owners create DRAFT applications for active captured jobs, filter active/archived applications by exact status, edit notes and next actions, record only allowed explicit status transitions, view oldest-first status history, and archive/restore applications without sending owner identifiers or inferring status.
+- **FR-035:** The authenticated frontend job workspace lets owners capture jobs, edit metadata, view active/archived jobs, archive/restore jobs, view oldest-first immutable description snapshots, append new snapshots, filter/search the bounded loaded collection, and review non-blocking duplicate warnings without sending owner identifiers or fetching posting URLs.
+- **FR-036:** The authenticated frontend application workspace lets owners create DRAFT applications for active captured jobs, filter active/archived applications by exact status plus local text/due-state filters, edit notes and next actions, record only allowed explicit status transitions, view oldest-first status history, and archive/restore applications without sending owner identifiers or inferring status.
+- **FR-037:** Real-browser verification proves job/application ownership, lifecycle behavior, duplicate-warning behavior, optimistic conflict handling, CSRF/session behavior, browser privacy, and safe diagnostics against a disposable PostgreSQL-backed full-stack environment.
 
 ## Documents
 
-- **FR-037:** Tailoring uses only verified facts.
-- **FR-038:** Users see original and proposed content before approval.
-- **FR-039:** Exports record their source resume, job, approved changes, and creation time.
-- **FR-040:** Users can generate and edit grounded cover-letter drafts.
-- **FR-041:** The system preserves the original resume.
+- **FR-038:** Tailoring uses only verified facts.
+- **FR-039:** Users see original and proposed content before approval.
+- **FR-040:** Exports record their source resume, job, approved changes, and creation time.
+- **FR-041:** Users can generate and edit grounded cover-letter drafts.
+- **FR-042:** The system preserves the original resume.
 
 ## Applications
 
-- **FR-042:** Users can manage application stage, notes, dates, contacts, and follow-ups.
-- **FR-043:** Stage changes form an immutable history.
-- **FR-044:** The system does not submit an application in V1.
-- **FR-045:** Application status is user-declared operational state; `APPLIED`, `INTERVIEWING`, `OFFER`, and `ACCEPTED` require explicit owner-recorded transitions and are never inferred from AI, job capture, resume generation, or downloads.
-- **FR-046:** Application archival is separate from status so final outcomes remain visible in history.
+- **FR-043:** Users can manage application stage, notes, dates, contacts, and follow-ups.
+- **FR-044:** Stage changes form an immutable history.
+- **FR-045:** The system does not submit an application in V1.
+- **FR-046:** Application status is user-declared operational state; `APPLIED`, `INTERVIEWING`, `OFFER`, and `ACCEPTED` require explicit owner-recorded transitions and are never inferred from AI, job capture, resume generation, or downloads.
+- **FR-047:** Application archival is separate from status so final outcomes remain visible in history.
 
 ## Data control and operations
 

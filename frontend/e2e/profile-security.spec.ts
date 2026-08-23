@@ -38,7 +38,28 @@ async function login(page: Page, loginName: string, password: string) {
   ).toBeVisible();
   await page.getByLabel('Login name').fill(loginName);
   await page.getByLabel('Password').fill(password);
+  const loginResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/auth/login' &&
+      response.request().method() === 'POST',
+  );
   await page.getByRole('button', { name: 'Sign in' }).click();
+  const loginResponse = await loginResponsePromise;
+  const status = loginResponse.status();
+  let genericCode = 'none';
+  try {
+    const body = (await loginResponse.json()) as { code?: unknown };
+    if (typeof body.code === 'string' && /^[a-z0-9_-]{1,64}$/.test(body.code)) {
+      genericCode = body.code;
+    }
+  } catch {
+    // A successful response need not provide a generic error code.
+  }
+  // 401 invalid credentials, 403 CSRF/session rejection, 409 unexpected conflict,
+  // 429 rate limited, 500 server error. Only the safe status and generic code are logged.
+  const safeResponseSummary = `Login response: HTTP ${status}, generic code ${genericCode}`;
+  console.info(safeResponseSummary);
+  expect(status, safeResponseSummary).toBe(200);
   await expect(page.getByRole('heading', { name: 'Your job-search workspace.' })).toBeVisible();
 }
 
@@ -47,7 +68,17 @@ async function openProfile(page: Page) {
   await expect(page.getByRole('heading', { name: 'Candidate profile' })).toBeVisible();
 }
 
-async function createMember(browser: Browser, baseURL: string | undefined) {
+/**
+ * Logs the shared administrator in once and invites a fresh, uniquely named
+ * member. The administrator session is intentionally kept open and returned
+ * so the caller can reuse it later (for example, to exercise cross-account
+ * isolation) instead of logging the fixed administrator account in again,
+ * which would needlessly consume the production login-rate-limit budget.
+ */
+async function loginAdminAndInviteMember(
+  browser: Browser,
+  baseURL: string | undefined,
+): Promise<Page> {
   const adminContext = await browser.newContext();
   const adminPage = await adminContext.newPage();
   await login(adminPage, adminLogin, adminPassword);
@@ -55,6 +86,7 @@ async function createMember(browser: Browser, baseURL: string | undefined) {
   await adminPage.getByRole('button', { name: 'Create MEMBER invitation' }).click();
   const invitationLink = await adminPage.getByLabel('One-time invitation link').inputValue();
   expect(invitationLink.startsWith(`${baseURL}/#invite=`)).toBeTruthy();
+  await adminPage.getByRole('button', { name: 'Back to workspace' }).click();
 
   const memberContext = await browser.newContext();
   const memberPage = await memberContext.newPage();
@@ -68,8 +100,8 @@ async function createMember(browser: Browser, baseURL: string | undefined) {
   await expect(
     memberPage.getByRole('heading', { name: 'Sign in to your private workspace' }),
   ).toBeVisible();
-  await adminContext.close();
   await memberContext.close();
+  return adminPage;
 }
 
 async function csrf(page: Page) {
@@ -107,9 +139,22 @@ async function apiJson<T>(page: Page, path: string, init?: RequestInit): Promise
   ) as Promise<T>;
 }
 
+/**
+ * Creates the profile for a brand-new account, or updates it in place if one
+ * already exists. The fixed, shared administrator account can already carry
+ * a profile left over from an earlier verification pass against the same
+ * running backend and database, so this helper detects that state instead of
+ * assuming first-time creation and hitting a 409 the assertions can't explain.
+ */
 async function createProfile(page: Page, displayName: string) {
   await openProfile(page);
-  await expect(page.getByText('Create your profile once')).toBeVisible();
+  const createPrompt = page.getByText('Create your profile once');
+  const editButton = page.getByRole('button', { name: 'Edit profile' });
+  await expect(createPrompt.or(editButton)).toBeVisible();
+  const creatingNewProfile = await createPrompt.isVisible();
+  if (!creatingNewProfile) {
+    await editButton.click();
+  }
   await page.getByLabel(/professional display name/i).fill(displayName);
   await page.getByLabel(/professional headline/i).fill('Synthetic profile specialist');
   await page.getByLabel(/career summary/i).fill('Synthetic summary aligned to confirmed facts.');
@@ -117,7 +162,28 @@ async function createProfile(page: Page, displayName: string) {
   await page.getByLabel(/target roles/i).fill('Verification engineer');
   await page.getByLabel(/work authorization statement/i).fill('Synthetic authorization statement.');
   await page.getByLabel(/work-location preferences/i).fill('Remote or hybrid');
+  const saveResponsePromise = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname === '/api/profile' &&
+      (response.request().method() === 'POST' || response.request().method() === 'PUT'),
+  );
   await page.getByRole('button', { name: 'Save profile' }).click();
+  const saveResponse = await saveResponsePromise;
+  const status = saveResponse.status();
+  let genericCode = 'none';
+  try {
+    const body = (await saveResponse.json()) as { code?: unknown };
+    if (typeof body.code === 'string' && /^[a-z0-9_-]{1,64}$/.test(body.code)) {
+      genericCode = body.code;
+    }
+  } catch {
+    // Success bodies carry profile content and are intentionally not read here.
+  }
+  // 401 session expired, 403 CSRF rejection, 409 unexpected conflict, 500 server
+  // error. Only the safe status and generic code are logged, never the body.
+  const safeResponseSummary = `Profile save response: HTTP ${status}, generic code ${genericCode}`;
+  console.info(safeResponseSummary);
+  expect(status, safeResponseSummary).toBe(creatingNewProfile ? 201 : 200);
   await expect(page.getByText(displayName)).toBeVisible();
   await expect(page.getByText('Synthetic profile specialist')).toBeVisible();
 }
@@ -221,7 +287,8 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   baseURL,
 }) => {
   test.setTimeout(120_000);
-  await createMember(browser, baseURL);
+  const adminPage = await loginAdminAndInviteMember(browser, baseURL);
+  const adminContext = adminPage.context();
 
   const memberContext = await browser.newContext();
   const memberPage = await memberContext.newPage();
@@ -355,9 +422,8 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
     `/api/profile/career-facts/${randomUuid}`,
   );
 
-  const adminContext = await browser.newContext();
-  const adminPage = await adminContext.newPage();
-  await login(adminPage, adminLogin, adminPassword);
+  // The administrator session opened in loginAdminAndInviteMember is reused
+  // here rather than logging the shared administrator account in again.
   await createProfile(adminPage, 'Synthetic Admin Profile');
   await expect(adminPage.getByText('synthetic-base-resume.pdf')).toHaveCount(0);
   const adminResumeMissing = await apiStatusAndCode(adminPage, '/api/documents/base-resume');

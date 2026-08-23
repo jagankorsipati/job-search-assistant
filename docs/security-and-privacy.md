@@ -102,7 +102,11 @@ Phase 4C exposes only authenticated `/api/applications/**` APIs. State-changing 
 
 Phase 4D exposes job and application state in authenticated frontend workspaces only. The browser keeps job, snapshot, application, and status-history data in React memory and does not write it to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies. Typed API clients use the shared CSRF/session client and never send trusted owner/account IDs. A `401` response clears only in-memory authenticated state and returns to login.
 
+Phase 4E keeps search and duplicate detection local to the bounded owner-visible job/application collections already returned by the APIs. Duplicate warnings are deterministic and non-blocking; they compare normalized posting URLs, external posting IDs with matching context, and normalized company/title similarity, but they do not create global indexes, perform cross-owner lookup, fetch URLs, or prevent an intentional capture.
+
 The frontend preserves the Phase 4 truthfulness boundary: URL references are stored and displayed only as external references, never fetched or scraped by the application; creating an application starts `DRAFT` and does not submit anything; application status changes require deliberate owner action and the allowed transition matrix; conflicts preserve unsaved form values until the owner reloads latest server state.
+
+Phase 4 job/application verification evidence is recorded in the [Phase 4 verification matrix](security/phase-4-verification.md). Browser verification covers member/admin isolation, direct cross-owner API denial with safe not-found shapes, CSRF rejection, optimistic conflicts, URL-reference no-fetch behavior, no browser storage of job/application data, duplicate warnings, local filters, and status-history truthfulness.
 
 ## Network posture
 

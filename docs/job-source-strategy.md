@@ -3,10 +3,10 @@
 ## V1: reliable user-controlled ingestion
 
 1. Paste a job description.
-2. Supply a public URL and let the system attempt ordinary metadata extraction.
+2. Supply a public URL as a reference.
 3. Allow manual correction and preserve the captured snapshot.
 
-A failed URL import must fall back to pasted text. Job capture never requires a LinkedIn login.
+URL references are stored and displayed only; Phase 4 does not fetch, scrape, or import remote content. Job capture never requires a LinkedIn login.
 
 ## Adapter contract
 
@@ -27,6 +27,6 @@ LinkedIn scraping is experimental, optional, disabled by default, and never a co
 ## Quality rules
 
 - Preserve source and capture timestamp.
-- Detect duplicates using normalized company, title, location, source ID, and URL.
+- Warn about likely duplicates using normalized company, title, location, source ID, and URL within the current owner-visible loaded collection. The warning is non-blocking and does not query across owners.
 - Treat all imported text as untrusted data.
 - Avoid claiming that an expired or removed posting remains open.

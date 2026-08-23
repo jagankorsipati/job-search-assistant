@@ -444,6 +444,7 @@ button:focus-visible {
 .profile-form input,
 .profile-form select,
 .profile-form textarea,
+.filter-bar input,
 .filter-bar select {
   width: 100%;
   min-height: 2.65rem;
@@ -551,6 +552,42 @@ button:focus-visible {
   border: 1px solid #89938f;
   border-radius: 0.4rem;
   background: white;
+}
+
+.warning-panel {
+  display: grid;
+  gap: 0.65rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid #b98524;
+  border-radius: 0.5rem;
+  background: #fff8e8;
+}
+
+.warning-panel p {
+  margin: 0;
+}
+
+.warning-panel dl {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.warning-panel dl div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 0.35fr) minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.warning-panel dt {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.warning-panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .record-list {

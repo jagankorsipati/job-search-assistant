@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 4 is in progress. Phase 4D adds authenticated `/jobs` and `/applications` frontend workspaces for owner-scoped job capture, immutable description snapshots, draft application creation, explicit status tracking, notes, next actions, archive/restore, and optimistic-conflict recovery. Scraping, URL fetching, AI analysis, reminders, search, duplicate warnings, and application submission are not included yet.
+Phase 4E is implemented: authenticated `/jobs` and `/applications` workspaces now support owner-scoped job capture, immutable description snapshots, draft application creation, explicit status tracking, notes, next actions, archive/restore, optimistic-conflict recovery, local bounded search/filter refinement, and non-blocking duplicate warnings. Scraping, URL fetching, AI analysis, reminders, and application submission are not included.
 
 ## Planned capabilities
 
@@ -98,7 +98,7 @@ Local household setup proceeds in this order: bootstrap the first administrator,
 
 Compromised-password screening is entirely offline. Provenance and the reviewed update command are documented in [the blocklist guide](docs/security/compromised-password-blocklist.md).
 
-The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Candidate-profile verification evidence is recorded in the [Phase 3 verification matrix](docs/security/phase-3-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
+The final identity threat model and evidence are recorded in the [Phase 2 verification matrix](docs/security/phase-2-verification.md). Candidate-profile and base-resume verification evidence is recorded in the [Phase 3 verification matrix](docs/security/phase-3-verification.md). Job/application verification evidence is recorded in the [Phase 4 verification matrix](docs/security/phase-4-verification.md). Future household deployment must pass the separate [deployment security checklist](docs/security/deployment-checklist.md).
 
 Profile API endpoints live under `/api/profile`. They derive ownership from the validated server-side actor, never from request JSON. `GET /api/profile/career-facts` supports exact `category` and `status` enum filters plus a bounded `limit` of 1 through 100. State-changing requests require CSRF. Stale versions and invalid fact transitions return safe conflicts; nonexistent and non-owned resources share not-found behavior.
 
@@ -118,7 +118,7 @@ The profile form never autosaves. It sends the current version on update and pre
 
 The job and application frontend workspaces are available at `/jobs` and `/applications` after sign-in through the lightweight in-app navigation. Refreshing either path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to login. The browser keeps job, snapshot, application, and status-history data only in memory and never submits owner/account identifiers. Job posting URLs are displayed as references only; the frontend does not fetch, scrape, or submit to them.
 
-The job workspace supports active and archived lists, manual/pasted/URL-reference capture, metadata edits with expected versions, archive/restore confirmation, oldest-first immutable snapshot display, and snapshot append. The application workspace supports active and archived lists, status filtering, DRAFT creation for active captured jobs, notes and next-action edits, explicit allowed status transitions with history, and archive/restore confirmation. `409` conflicts preserve unsaved form values until the owner reloads the latest server state. Status text remains truthful: creating an application does not submit it, and status changes are recorded only after deliberate owner action.
+The job workspace supports active and archived lists, manual/pasted/URL-reference capture, metadata edits with expected versions, archive/restore confirmation, oldest-first immutable snapshot display, snapshot append, bounded in-memory search/filtering, and non-blocking duplicate warnings based on normalized URL, external posting ID with matching context, or company/title similarity. The application workspace supports active and archived lists, status/text/due-state filtering, DRAFT creation for active captured jobs, notes and next-action edits, explicit allowed status transitions with history, and archive/restore confirmation. `409` conflicts preserve unsaved form values until the owner reloads the latest server state. Status text remains truthful: creating an application does not submit it, and status changes are recorded only after deliberate owner action.
 
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
@@ -216,4 +216,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 4E: add job/application duplicate warnings, search/filter refinement, and full real-browser verification. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.
+Phase 5 begins deterministic fit analysis. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.

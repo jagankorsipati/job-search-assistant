@@ -27,8 +27,13 @@ export interface ManagedAccount {
 export { ApiError };
 export const authApi = {
   me: () => apiGet<Identity>('/api/auth/me'),
-  login: (loginName: string, password: string) =>
-    apiPost<Identity>('/api/auth/login', { loginName, password }),
+  async login(loginName: string, password: string): Promise<Identity> {
+    const identity = await apiPost<Identity>('/api/auth/login', { loginName, password });
+    // The server rotates the session on login. Any CSRF token cached from the
+    // pre-login (anonymous) session must not be reused against the new one.
+    resetCsrf();
+    return identity;
+  },
   async logout(): Promise<void> {
     await apiPost<void>('/api/auth/logout');
     resetCsrf();

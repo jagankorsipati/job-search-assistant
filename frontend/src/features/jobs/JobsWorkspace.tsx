@@ -1,4 +1,4 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError } from '../../api/client';
 import {
   employmentTypes,
@@ -35,9 +35,16 @@ interface JobForm {
   descriptionText: string;
 }
 
+interface DuplicateWarning {
+  strength: 'strong' | 'possible';
+  reason: string;
+  job: CapturedJob;
+}
+
 export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
   const [archived, setArchived] = useState(false);
   const [jobs, setJobs] = useState<CapturedJob[]>([]);
+  const [allJobs, setAllJobs] = useState<CapturedJob[]>([]);
   const [selectedId, setSelectedId] = useState<string>();
   const [selected, setSelected] = useState<CapturedJob>();
   const [snapshots, setSnapshots] = useState<JobDescriptionSnapshot[]>([]);
@@ -55,12 +62,27 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
     descriptionText: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [searchText, setSearchText] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<JobSourceType | ''>('');
+  const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | ''>('');
+  const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | undefined>();
+
+  const filteredJobs = useMemo(
+    () => jobs.filter((job) => matchesJobFilters(job, searchText, sourceFilter, employmentFilter)),
+    [employmentFilter, jobs, searchText, sourceFilter],
+  );
+  const filtersActive = searchText.trim() !== '' || sourceFilter !== '' || employmentFilter !== '';
 
   const loadJobs = useCallback(async () => {
     setMode('loading');
     setFailure('');
     try {
-      const loaded = await jobsApi.listJobs({ archived, limit: 100 });
+      const [activeJobs, archivedJobs] = await Promise.all([
+        jobsApi.listJobs({ archived: false, limit: 100 }),
+        jobsApi.listJobs({ archived: true, limit: 100 }),
+      ]);
+      const loaded = archived ? archivedJobs : activeJobs;
+      setAllJobs([...activeJobs, ...archivedJobs]);
       setJobs(loaded);
       setSelectedId((current) =>
         current && loaded.some((job) => job.id === current) ? current : loaded[0]?.id,
@@ -115,18 +137,28 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
     const validation = validateJob(captureForm, true);
     setErrors(validation);
     if (Object.keys(validation).length > 0) return;
+    const warning = findDuplicateWarning(captureForm, allJobs);
+    if (warning) {
+      setDuplicateWarning(warning);
+      return;
+    }
+    await submitCapture();
+  };
+
+  const submitCapture = async () => {
     setBusy(true);
     setFailure('');
     setMessage('');
+    setDuplicateWarning(undefined);
     try {
       const created = await jobsApi.captureJob(cleanJob(captureForm));
       setCaptureOpen(false);
       setCaptureForm(blankJobForm);
-      setJobs((current) => [created.job, ...current]);
       setSelectedId(created.job.id);
       setSelected(created.job);
       setSnapshots(created.initialSnapshot ? [created.initialSnapshot] : []);
       setMessage(created.initialSnapshot ? 'Job captured with initial snapshot.' : 'Job captured.');
+      await loadJobs();
     } catch (error) {
       handleWriteError(error, onExpired, setFailure, setConflict, 'The job was not captured.');
     } finally {
@@ -260,6 +292,60 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
               Archived jobs
             </button>
           </div>
+          <div className="filter-bar" aria-label="Job filters">
+            <label>
+              Search loaded jobs
+              <input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="Company, title, location, URL, or posting ID"
+              />
+            </label>
+            <label>
+              Source
+              <select
+                value={sourceFilter}
+                onChange={(event) => setSourceFilter(event.target.value as JobSourceType | '')}
+              >
+                <option value="">All sources</option>
+                {jobSourceTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {label(type)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Employment
+              <select
+                value={employmentFilter}
+                onChange={(event) => setEmploymentFilter(event.target.value as EmploymentType | '')}
+              >
+                <option value="">All employment</option>
+                {employmentTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {label(type)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={!filtersActive}
+              onClick={() => {
+                setSearchText('');
+                setSourceFilter('');
+                setEmploymentFilter('');
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+          <p className="inline-note" role="status" aria-live="polite">
+            Showing {filteredJobs.length} of {jobs.length} loaded {archived ? 'archived' : 'active'}{' '}
+            jobs.
+          </p>
           {captureOpen && (
             <JobFormView
               idPrefix="capture"
@@ -273,13 +359,26 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
               onCancel={() => setCaptureOpen(false)}
             />
           )}
+          {duplicateWarning && (
+            <DuplicateWarningPanel
+              warning={duplicateWarning}
+              onReview={() => {
+                setArchived(duplicateWarning.job.archived);
+                setSelectedId(duplicateWarning.job.id);
+                setDuplicateWarning(undefined);
+              }}
+              onContinue={() => void submitCapture()}
+            />
+          )}
           {mode === 'loading' ? (
             <p>Loading jobs...</p>
           ) : jobs.length === 0 ? (
             <p className="empty-note">{archived ? 'No archived jobs.' : 'No active jobs yet.'}</p>
+          ) : filteredJobs.length === 0 ? (
+            <p className="empty-note">No loaded jobs match these filters.</p>
           ) : (
             <ul className="record-list" aria-label={archived ? 'Archived jobs' : 'Active jobs'}>
-              {jobs.map((job) => (
+              {filteredJobs.map((job) => (
                 <li key={job.id}>
                   <button
                     className="record-button"
@@ -561,6 +660,38 @@ function JobFormView({
   );
 }
 
+function DuplicateWarningPanel({
+  warning,
+  onReview,
+  onContinue,
+}: {
+  warning: DuplicateWarning;
+  onReview: () => void;
+  onContinue: () => void;
+}) {
+  return (
+    <div className="warning-panel" role="alert">
+      <p>This looks similar to an existing job. Review it before capturing.</p>
+      <p className="inline-note">{warning.reason}</p>
+      <dl>
+        <Detail name="Company" value={warning.job.companyName} />
+        <Detail name="Title" value={warning.job.jobTitle} />
+        <Detail name="Location" value={warning.job.workLocation || 'Not provided'} />
+        <Detail name="Posting URL" value={warning.job.postingUrl || 'Not provided'} />
+        <Detail name="State" value={warning.job.archived ? 'Archived' : 'Active'} />
+      </dl>
+      <div className="form-actions">
+        <button type="button" onClick={onReview}>
+          Review existing job
+        </button>
+        <button className="secondary-button" type="button" onClick={onContinue}>
+          Continue capturing
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function validateJob(form: JobForm, includeDescription: boolean) {
   const errors: Record<string, string> = {};
   if (!form.companyName.trim()) errors.companyName = 'Company name is required.';
@@ -608,6 +739,81 @@ function cleanJob(form: JobForm): CaptureJobRequest {
     datePosted: form.datePosted || null,
     descriptionText: optional(form.descriptionText),
   };
+}
+
+function matchesJobFilters(
+  job: CapturedJob,
+  searchText: string,
+  sourceFilter: JobSourceType | '',
+  employmentFilter: EmploymentType | '',
+) {
+  if (sourceFilter && job.sourceType !== sourceFilter) return false;
+  if (employmentFilter && job.employmentType !== employmentFilter) return false;
+  const query = normalizeText(searchText);
+  if (!query) return true;
+  return [
+    job.companyName,
+    job.jobTitle,
+    job.workLocation ?? '',
+    job.postingUrl ?? '',
+    job.externalPostingId ?? '',
+  ].some((value) => normalizeText(value).includes(query));
+}
+
+function findDuplicateWarning(form: JobForm, candidates: CapturedJob[]) {
+  const postingUrl = normalizeUrl(form.postingUrl);
+  const externalPostingId = normalizeText(form.externalPostingId);
+  const company = normalizeText(form.companyName);
+  const title = normalizeText(form.jobTitle);
+  const location = normalizeText(form.workLocation);
+  const urlHost = urlHostName(form.postingUrl);
+
+  if (postingUrl) {
+    const match = candidates.find((job) => normalizeUrl(job.postingUrl ?? '') === postingUrl);
+    if (match) {
+      return {
+        strength: 'strong',
+        reason: 'Strong duplicate indicator: exact posting URL match.',
+        job: match,
+      } satisfies DuplicateWarning;
+    }
+  }
+
+  if (externalPostingId) {
+    const match = candidates.find((job) => {
+      if (normalizeText(job.externalPostingId ?? '') !== externalPostingId) return false;
+      const sameCompany = company !== '' && normalizeText(job.companyName) === company;
+      const sameHost =
+        urlHost !== '' && Boolean(job.postingUrl) && urlHostName(job.postingUrl ?? '') === urlHost;
+      return sameCompany || sameHost;
+    });
+    if (match) {
+      return {
+        strength: 'strong',
+        reason: 'Strong duplicate indicator: matching external posting ID with matching context.',
+        job: match,
+      } satisfies DuplicateWarning;
+    }
+  }
+
+  if (company && title) {
+    const match = candidates.find(
+      (job) => normalizeText(job.companyName) === company && normalizeText(job.jobTitle) === title,
+    );
+    if (match) {
+      const sameLocation =
+        location !== '' && normalizeText(match.workLocation ?? '') === location
+          ? ' The location also matches.'
+          : '';
+      return {
+        strength: 'possible',
+        reason: `Possible duplicate indicator: same company and job title.${sameLocation}`,
+        job: match,
+      } satisfies DuplicateWarning;
+    }
+  }
+
+  return undefined;
 }
 
 function jobToForm(job: CapturedJob): JobForm {
@@ -729,6 +935,32 @@ function Detail({ name, value }: { name: string; value: ReactNode }) {
 function optional(value: string) {
   const trimmed = value.trim();
   return trimmed === '' ? null : trimmed;
+}
+
+function normalizeText(value: string) {
+  return value.trim().toLowerCase().replaceAll(/\s+/g, ' ');
+}
+
+function normalizeUrl(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    const url = new URL(trimmed);
+    url.hash = '';
+    const normalized = url.toString().toLowerCase();
+    return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
+  } catch {
+    const normalized = trimmed.toLowerCase();
+    return normalized.endsWith('/') ? normalized.slice(0, -1) : normalized;
+  }
+}
+
+function urlHostName(value: string) {
+  try {
+    return new URL(value.trim()).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
 }
 
 function handleWriteError(
