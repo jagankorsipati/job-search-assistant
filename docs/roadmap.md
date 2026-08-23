@@ -40,8 +40,8 @@ Each milestone should be independently reviewable and committable.
 - Phase 4A complete: owner-scoped captured-job, immutable job-description snapshot, job-application, and application-status-history domain/schema foundation
 - Phase 4B complete: authenticated owner-scoped job capture, metadata update, immutable description-snapshot, and archive/restore APIs
 - Phase 4C complete: authenticated owner-scoped application tracking, next-action metadata, explicit status transitions, append-only status-history APIs, optimistic locking, and application archive/restore
-- Phase 4D next: job/application frontend UI
-- Later Phase 4: duplicate warnings and search
+- Phase 4D complete: authenticated `/jobs` and `/applications` frontend workspaces with active/archived lists, job capture, immutable snapshot display/append, draft application creation, explicit status transitions, status history, notes, next actions, archive/restore, session-expiry handling, and optimistic-conflict recovery without browser persistence
+- Phase 4E next: duplicate warnings, search/filter refinement, and full real-browser job/application verification
 
 ## Phase 5 — Deterministic fit analysis
 

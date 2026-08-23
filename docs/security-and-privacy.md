@@ -100,6 +100,10 @@ Phase 4C exposes only authenticated `/api/applications/**` APIs. State-changing 
 
 `WITHDRAWN` is truthful before or after submission. Phase 4C adds V9 to correct the original V8 constraint so a pre-application withdrawal does not fabricate `appliedAt`; post-application withdrawal preserves the existing timestamp. `READY_TO_APPLY -> APPLIED` accepts an optional user-entered timestamp only within a five-minute future clock-skew tolerance, otherwise uses the server clock. Terminal statuses clear next actions while preserving notes and immutable history.
 
+Phase 4D exposes job and application state in authenticated frontend workspaces only. The browser keeps job, snapshot, application, and status-history data in React memory and does not write it to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies. Typed API clients use the shared CSRF/session client and never send trusted owner/account IDs. A `401` response clears only in-memory authenticated state and returns to login.
+
+The frontend preserves the Phase 4 truthfulness boundary: URL references are stored and displayed only as external references, never fetched or scraped by the application; creating an application starts `DRAFT` and does not submit anything; application status changes require deliberate owner action and the allowed transition matrix; conflicts preserve unsaved form values until the owner reloads latest server state.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

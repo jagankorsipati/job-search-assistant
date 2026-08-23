@@ -2,7 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError, authApi } from './api/auth';
+import { applicationsApi, type JobApplication } from './api/applications';
 import { documentsApi, type BaseResumeMetadata } from './api/documents';
+import { jobsApi, type CapturedJob, type JobDescriptionSnapshot } from './api/jobs';
 import { profileApi, type CandidateProfile, type CareerFact } from './api/profile';
 
 vi.mock('./api/auth', async (original) => {
@@ -51,9 +53,44 @@ vi.mock('./api/documents', async (original) => {
     },
   };
 });
+vi.mock('./api/jobs', async (original) => {
+  const actual = await original<typeof import('./api/jobs')>();
+  return {
+    ...actual,
+    jobsApi: {
+      listJobs: vi.fn(),
+      captureJob: vi.fn(),
+      getJob: vi.fn(),
+      updateJob: vi.fn(),
+      archiveJob: vi.fn(),
+      restoreJob: vi.fn(),
+      listSnapshots: vi.fn(),
+      getSnapshot: vi.fn(),
+      appendSnapshot: vi.fn(),
+    },
+  };
+});
+vi.mock('./api/applications', async (original) => {
+  const actual = await original<typeof import('./api/applications')>();
+  return {
+    ...actual,
+    applicationsApi: {
+      listApplications: vi.fn(),
+      createApplication: vi.fn(),
+      getApplication: vi.fn(),
+      updateApplication: vi.fn(),
+      transitionApplication: vi.fn(),
+      listHistory: vi.fn(),
+      archiveApplication: vi.fn(),
+      restoreApplication: vi.fn(),
+    },
+  };
+});
 const api = vi.mocked(authApi);
 const profile = vi.mocked(profileApi);
 const documents = vi.mocked(documentsApi);
+const jobs = vi.mocked(jobsApi);
+const applications = vi.mocked(applicationsApi);
 
 const savedProfile: CandidateProfile = {
   id: 'profile-id',
@@ -110,6 +147,49 @@ const savedResume: BaseResumeMetadata = {
   createdAt: '2026-08-20T00:00:00Z',
   updatedAt: '2026-08-21T00:00:00Z',
   version: 2,
+};
+
+const savedJob: CapturedJob = {
+  id: 'job-id',
+  companyName: 'Acme',
+  jobTitle: 'Platform Engineer',
+  workLocation: 'Remote',
+  postingUrl: 'https://example.test/job',
+  sourceType: 'MANUAL',
+  employmentType: 'FULL_TIME',
+  externalPostingId: null,
+  datePosted: '2026-08-01',
+  capturedAt: '2026-08-20T00:00:00Z',
+  metadataUpdatedAt: '2026-08-21T00:00:00Z',
+  version: 2,
+  archivedAt: null,
+  archived: false,
+};
+
+const savedSnapshot: JobDescriptionSnapshot = {
+  id: 'snapshot-id',
+  jobId: 'job-id',
+  sequence: 1,
+  sourceType: 'PASTED_DESCRIPTION',
+  descriptionText: 'Build reliable systems.',
+  sha256Digest: 'digest',
+  capturedAt: '2026-08-20T00:00:00Z',
+};
+
+const savedApplication: JobApplication = {
+  id: 'application-id',
+  jobId: 'job-id',
+  status: 'READY_TO_APPLY',
+  appliedAt: null,
+  nextActionText: 'Submit application',
+  nextActionDueDate: '2026-08-30',
+  privateNotes: 'Use tailored resume.',
+  statusChangedAt: '2026-08-21T00:00:00Z',
+  createdAt: '2026-08-20T00:00:00Z',
+  updatedAt: '2026-08-21T00:00:00Z',
+  version: 3,
+  archivedAt: null,
+  archived: false,
 };
 
 describe('authentication experience', () => {
@@ -634,6 +714,312 @@ describe('career facts workspace', () => {
     await renderProfile();
     expect(screen.queryByText(/ownerAccountId/i)).not.toBeInTheDocument();
     expect(document.body.textContent).not.toContain('member-id');
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+});
+
+describe('job and application workspaces', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.clearAllMocks();
+    localStorage.clear();
+    sessionStorage.clear();
+    window.history.replaceState(null, '', '/');
+    api.me.mockResolvedValue({ accountId: 'member-id', role: 'MEMBER' });
+    api.logout.mockResolvedValue();
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [savedJob]),
+    );
+    jobs.getJob.mockResolvedValue(savedJob);
+    jobs.listSnapshots.mockResolvedValue([savedSnapshot]);
+    jobs.captureJob.mockResolvedValue({
+      job: { ...savedJob, id: 'created-job', companyName: 'New Co', version: 0 },
+      initialSnapshot: { ...savedSnapshot, id: 'created-snapshot', jobId: 'created-job' },
+    });
+    jobs.updateJob.mockResolvedValue({ ...savedJob, companyName: 'Acme Updated', version: 3 });
+    jobs.archiveJob.mockResolvedValue({
+      ...savedJob,
+      archived: true,
+      archivedAt: '2026-08-22T00:00:00Z',
+      version: 3,
+    });
+    jobs.restoreJob.mockResolvedValue({ ...savedJob, version: 4 });
+    jobs.appendSnapshot.mockResolvedValue({
+      ...savedSnapshot,
+      id: 'snapshot-2',
+      sequence: 2,
+      descriptionText: 'New immutable text.',
+    });
+    applications.listApplications.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [savedApplication]),
+    );
+    applications.getApplication.mockResolvedValue(savedApplication);
+    applications.listHistory.mockResolvedValue([
+      {
+        id: 'history-1',
+        previousStatus: null,
+        newStatus: 'DRAFT',
+        effectiveAt: '2026-08-20T00:00:00Z',
+        note: null,
+        recordedAt: '2026-08-20T00:00:00Z',
+      },
+      {
+        id: 'history-2',
+        previousStatus: 'DRAFT',
+        newStatus: 'READY_TO_APPLY',
+        effectiveAt: '2026-08-21T00:00:00Z',
+        note: 'Ready',
+        recordedAt: '2026-08-21T00:00:00Z',
+      },
+    ]);
+    applications.createApplication.mockResolvedValue({
+      ...savedApplication,
+      id: 'created-application',
+      status: 'DRAFT',
+      version: 0,
+    });
+    applications.updateApplication.mockResolvedValue({
+      ...savedApplication,
+      privateNotes: 'Updated note',
+      version: 4,
+    });
+    applications.transitionApplication.mockResolvedValue({
+      ...savedApplication,
+      status: 'APPLIED',
+      appliedAt: '2026-08-22T12:00:00Z',
+      nextActionText: null,
+      nextActionDueDate: null,
+      version: 4,
+    });
+    applications.archiveApplication.mockResolvedValue({
+      ...savedApplication,
+      archived: true,
+      archivedAt: '2026-08-22T00:00:00Z',
+      version: 4,
+    });
+    applications.restoreApplication.mockResolvedValue({ ...savedApplication, version: 5 });
+  });
+
+  async function openJobs() {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /^jobs$/i }));
+    await screen.findByRole('heading', { name: /^jobs$/i });
+    return screen.findByText('Build reliable systems.');
+  }
+
+  async function openApplications() {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /^applications$/i }));
+    await screen.findByRole('heading', { name: /^applications$/i });
+    return screen.findByText(/application created/i);
+  }
+
+  it('activates Jobs navigation, restores /jobs, and loads active and archived lists', async () => {
+    window.history.replaceState(null, '', '/jobs');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: /^jobs$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^jobs$/i })).toHaveAttribute('aria-current', 'page');
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /archived jobs/i }));
+    await waitFor(() =>
+      expect(jobs.listJobs).toHaveBeenLastCalledWith({ archived: true, limit: 100 }),
+    );
+    expect(await screen.findByText(/no archived jobs/i)).toBeInTheDocument();
+  });
+
+  it('captures jobs with validation, renders initial snapshot, and never fetches posting URLs', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /capture job/i }));
+    fireEvent.change(screen.getAllByLabelText(/source type/i)[0]!, {
+      target: { value: 'PASTED_DESCRIPTION' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    expect(await screen.findByText(/company name is required/i)).toBeInTheDocument();
+    fireEvent.change(screen.getAllByLabelText(/company name/i)[0]!, {
+      target: { value: 'New Co' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/job title/i)[0]!, { target: { value: 'Builder' } });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    expect((await screen.findAllByText(/pasted description requires/i))[0]).toBeInTheDocument();
+    fireEvent.change(screen.getAllByLabelText(/description text/i)[0]!, {
+      target: { value: 'Do good work.' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /^capture job$/i }).at(-1)!);
+    await waitFor(() =>
+      expect(jobs.captureJob).toHaveBeenCalledWith(
+        expect.objectContaining({ companyName: 'New Co', sourceType: 'PASTED_DESCRIPTION' }),
+      ),
+    );
+    expect(await screen.findByText(/initial snapshot/i)).toBeInTheDocument();
+    expect(jobs.captureJob.mock.calls[0]?.[0]).toEqual(
+      expect.not.objectContaining({
+        ownerAccountId: expect.anything(),
+        accountId: expect.anything(),
+      }),
+    );
+  });
+
+  it('edits jobs with expectedVersion, preserves unsaved conflicts, and handles snapshots', async () => {
+    await openJobs();
+    expect(await screen.findByText('Build reliable systems.')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /edit metadata/i }));
+    fireEvent.change(screen.getAllByLabelText(/company name/i).at(-1)!, {
+      target: { value: 'Unsaved Co' },
+    });
+    jobs.updateJob.mockRejectedValueOnce(new ApiError(409, 'stale_version'));
+    fireEvent.click(screen.getAllByRole('button', { name: /edit metadata/i }).at(-1)!);
+    expect(await screen.findByRole('alert')).toHaveTextContent(/changed elsewhere/i);
+    expect(screen.getByDisplayValue('Unsaved Co')).toBeInTheDocument();
+    jobs.updateJob.mockResolvedValueOnce({ ...savedJob, companyName: 'Saved Co', version: 3 });
+    fireEvent.click(screen.getByRole('button', { name: /reload latest job/i }));
+    await waitFor(() => expect(jobs.getJob.mock.calls.length).toBeGreaterThanOrEqual(2));
+    fireEvent.change(screen.getAllByLabelText(/description text/i).at(-1)!, {
+      target: { value: 'New immutable text.' },
+    });
+    fireEvent.click(screen.getAllByRole('button', { name: /append snapshot/i }).at(-1)!);
+    await waitFor(() => expect(jobs.appendSnapshot).toHaveBeenCalled());
+    expect(await screen.findByText(/immutable snapshot appended/i)).toBeInTheDocument();
+  });
+
+  it('archives and restores jobs only after confirmation and hides edit controls for archived jobs', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /^archive$/i }));
+    await waitFor(() => expect(jobs.archiveJob).toHaveBeenCalledWith('job-id', 2));
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(
+        filters.archived
+          ? [{ ...savedJob, archived: true, archivedAt: '2026-08-22T00:00:00Z' }]
+          : [],
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /archived jobs/i }));
+    expect(await screen.findByText('Acme')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /edit metadata/i })).not.toBeInTheDocument();
+  });
+
+  it('activates Applications navigation and supports status-filtered lists', async () => {
+    window.history.replaceState(null, '', '/applications');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: /^applications$/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^applications$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    fireEvent.change(screen.getByLabelText(/^status$/i), { target: { value: 'READY_TO_APPLY' } });
+    await waitFor(() =>
+      expect(applications.listApplications).toHaveBeenLastCalledWith({
+        archived: false,
+        status: 'READY_TO_APPLY',
+        limit: 100,
+      }),
+    );
+  });
+
+  it('creates a draft application without owner or initial status fields and handles duplicates safely', async () => {
+    applications.listApplications.mockResolvedValue([]);
+    applications.createApplication.mockRejectedValueOnce(
+      new ApiError(409, 'duplicate_application'),
+    );
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /^applications$/i }));
+    await screen.findByRole('heading', { name: /^applications$/i });
+    fireEvent.click(screen.getByRole('button', { name: /create application/i }));
+    expect(screen.getByText(/starts it as draft/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/captured job/i), { target: { value: 'job-id' } });
+    fireEvent.click(screen.getByRole('button', { name: /create draft application/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/already exists/i);
+    applications.createApplication.mockResolvedValueOnce({
+      ...savedApplication,
+      id: 'created-application',
+      status: 'DRAFT',
+      version: 0,
+    });
+    fireEvent.click(screen.getByRole('button', { name: /create draft application/i }));
+    await waitFor(() =>
+      expect(applications.createApplication).toHaveBeenCalledWith(
+        expect.objectContaining({ jobId: 'job-id' }),
+      ),
+    );
+    expect(applications.createApplication.mock.calls[0]?.[0]).toEqual(
+      expect.not.objectContaining({
+        ownerAccountId: expect.anything(),
+        status: expect.anything(),
+        previousStatus: expect.anything(),
+      }),
+    );
+  });
+
+  it('updates notes with expectedVersion and preserves unsaved values on conflict', async () => {
+    await openApplications();
+    fireEvent.click(await screen.findByRole('button', { name: /edit notes and next action/i }));
+    fireEvent.change(screen.getAllByLabelText(/private notes/i).at(-1)!, {
+      target: { value: 'Unsaved note' },
+    });
+    applications.updateApplication.mockRejectedValueOnce(new ApiError(409, 'stale_version'));
+    fireEvent.click(screen.getByRole('button', { name: /save application notes/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/changed elsewhere/i);
+    expect(screen.getByDisplayValue('Unsaved note')).toBeInTheDocument();
+    expect(applications.updateApplication).toHaveBeenCalledWith(
+      'application-id',
+      expect.objectContaining({ expectedVersion: 3 }),
+    );
+    applications.updateApplication.mockResolvedValueOnce({ ...savedApplication, version: 4 });
+    fireEvent.change(document.querySelector<HTMLInputElement>('#application-next-action')!, {
+      target: { value: '' },
+    });
+    fireEvent.change(
+      document.querySelector<HTMLInputElement>('#application-next-action-due-date')!,
+      { target: { value: '2026-09-01' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /save application notes/i }));
+    expect(await screen.findByText(/due date requires/i)).toBeInTheDocument();
+  });
+
+  it('records status only after confirmation, sends appliedAt only for applied, and renders history oldest-first', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await openApplications();
+    expect(await screen.findByText(/application created/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/next status/i), { target: { value: 'APPLIED' } });
+    fireEvent.change(screen.getByLabelText(/applied date and time/i), {
+      target: { value: '2026-08-22T12:00' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /record status/i }));
+    await waitFor(() =>
+      expect(applications.transitionApplication).toHaveBeenCalledWith(
+        'application-id',
+        expect.objectContaining({
+          targetStatus: 'APPLIED',
+          expectedVersion: 3,
+          appliedAt: expect.any(String),
+        }),
+      ),
+    );
+    expect(await screen.findByText(/status recorded/i)).toBeInTheDocument();
+  });
+
+  it('requires note for another interview stage and warns terminal transitions clear next actions', async () => {
+    applications.getApplication.mockResolvedValue({ ...savedApplication, status: 'INTERVIEWING' });
+    await openApplications();
+    fireEvent.change(await screen.findByLabelText(/next status/i), {
+      target: { value: 'INTERVIEWING' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /record status/i }));
+    expect(await screen.findByText(/meaningful note/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/next status/i), { target: { value: 'WITHDRAWN' } });
+    expect(screen.getByText(/active next actions will be cleared/i)).toBeInTheDocument();
+  });
+
+  it('archives applications with preserved status messaging and returns to login on 401 without storage', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    applications.archiveApplication.mockRejectedValue(new ApiError(401));
+    await openApplications();
+    fireEvent.click(await screen.findByRole('button', { name: /^archive$/i }));
+    await waitFor(() =>
+      expect(applications.archiveApplication).toHaveBeenCalledWith('application-id', 3),
+    );
+    expect(await screen.findByRole('heading', { name: /sign in/i })).toBeInTheDocument();
     expect(localStorage.length).toBe(0);
     expect(sessionStorage.length).toBe(0);
   });

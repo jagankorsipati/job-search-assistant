@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 4 is in progress. Phase 4C adds authenticated owner-scoped APIs for application tracking, explicit status transitions, append-only status history, notes, next actions, and application archive/restore. Job/application frontend workspace, scraping, URL fetching, AI analysis, reminders, and application submission are not included yet.
+Phase 4 is in progress. Phase 4D adds authenticated `/jobs` and `/applications` frontend workspaces for owner-scoped job capture, immutable description snapshots, draft application creation, explicit status tracking, notes, next actions, archive/restore, and optimistic-conflict recovery. Scraping, URL fetching, AI analysis, reminders, search, duplicate warnings, and application submission are not included yet.
 
 ## Planned capabilities
 
@@ -116,6 +116,10 @@ The frontend profile workspace is available at `/profile` after sign-in. Refresh
 
 The profile form never autosaves. It sends the current version on update and preserves unsaved edits when a `409` conflict indicates the server changed elsewhere. Career facts are created as draft. Confirmed means the account owner explicitly attested that the fact is accurate; it is not independent verification by an employer, school, certification authority, or the application. Editing a confirmed fact returns it to draft. Draft and confirmed facts can be archived after confirmation; archived facts can be restored to draft, but cannot be edited until restored. Hard deletion remains deferred.
 
+The job and application frontend workspaces are available at `/jobs` and `/applications` after sign-in through the lightweight in-app navigation. Refreshing either path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to login. The browser keeps job, snapshot, application, and status-history data only in memory and never submits owner/account identifiers. Job posting URLs are displayed as references only; the frontend does not fetch, scrape, or submit to them.
+
+The job workspace supports active and archived lists, manual/pasted/URL-reference capture, metadata edits with expected versions, archive/restore confirmation, oldest-first immutable snapshot display, and snapshot append. The application workspace supports active and archived lists, status filtering, DRAFT creation for active captured jobs, notes and next-action edits, explicit allowed status transitions with history, and archive/restore confirmation. `409` conflicts preserve unsaved form values until the owner reloads the latest server state. Status text remains truthful: creating an application does not submit it, and status changes are recorded only after deliberate owner action.
+
 While the application is running, check `http://localhost:8080/actuator/health`. Only the health actuator endpoint is exposed, and health details are suppressed.
 
 Install and run the frontend from a third PowerShell process, after PostgreSQL and the backend are healthy:
@@ -212,4 +216,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 4D: add the job/application frontend workspace. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, and job scraping remain out of scope.
+Phase 4E: add job/application duplicate warnings, search/filter refinement, and full real-browser verification. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.

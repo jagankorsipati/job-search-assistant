@@ -1,6 +1,8 @@
 import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ApiError, authApi, type Identity, type ManagedAccount } from './api/auth';
 import { documentsApi, maxBaseResumeBytes, type BaseResumeMetadata } from './api/documents';
+import { ApplicationsWorkspace } from './features/applications/ApplicationsWorkspace';
+import { JobsWorkspace } from './features/jobs/JobsWorkspace';
 import {
   careerFactCategories,
   careerFactStatuses,
@@ -14,8 +16,8 @@ import {
 } from './api/profile';
 
 type View = 'loading' | 'login' | 'shell' | 'invite' | 'admin-invitations' | 'admin-accounts';
-type Workspace = 'dashboard' | 'profile';
-const upcomingItems = ['Jobs', 'Documents', 'Applications'] as const;
+type Workspace = 'dashboard' | 'profile' | 'jobs' | 'applications';
+const upcomingItems = ['Documents'] as const;
 
 const blankProfile: ProfileFields = {
   professionalDisplayName: '',
@@ -58,7 +60,7 @@ const factLimits = {
 export function App() {
   const [view, setView] = useState<View>('loading');
   const [workspace, setWorkspace] = useState<Workspace>(
-    window.location.pathname === '/profile' ? 'profile' : 'dashboard',
+    workspaceFromPath(window.location.pathname),
   );
   const [identity, setIdentity] = useState<Identity>();
   const [inviteToken, setInviteToken] = useState('');
@@ -97,7 +99,7 @@ export function App() {
   };
   const openWorkspace = (next: Workspace) => {
     setWorkspace(next);
-    navigate('shell', next === 'profile' ? '/profile' : '/');
+    navigate('shell', workspacePath(next));
   };
   const expireSession = () => {
     setIdentity(undefined);
@@ -115,7 +117,7 @@ export function App() {
       <Login
         onSuccess={(me) => {
           setIdentity(me);
-          openWorkspace(window.location.pathname === '/profile' ? 'profile' : 'dashboard');
+          openWorkspace(workspaceFromPath(window.location.pathname));
         }}
         onInvite={() => navigate('invite', '/invite')}
       />
@@ -355,6 +357,24 @@ function Shell({
                   Profile
                 </button>
               </li>
+              <li>
+                <button
+                  className="nav-item nav-button"
+                  aria-current={workspace === 'jobs' ? 'page' : undefined}
+                  onClick={() => onWorkspace('jobs')}
+                >
+                  Jobs
+                </button>
+              </li>
+              <li>
+                <button
+                  className="nav-item nav-button"
+                  aria-current={workspace === 'applications' ? 'page' : undefined}
+                  onClick={() => onWorkspace('applications')}
+                >
+                  Applications
+                </button>
+              </li>
               {upcomingItems.map((item) => (
                 <li key={item}>
                   <span className="nav-item" aria-disabled="true">
@@ -373,17 +393,39 @@ function Shell({
           )}
         </aside>
         <main id="main-content" className="main-content">
-          {workspace === 'profile' ? <ProfileWorkspace onExpired={onExpired} /> : <Dashboard />}
+          {workspace === 'profile' ? (
+            <ProfileWorkspace onExpired={onExpired} />
+          ) : workspace === 'jobs' ? (
+            <JobsWorkspace onExpired={onExpired} />
+          ) : workspace === 'applications' ? (
+            <ApplicationsWorkspace onExpired={onExpired} />
+          ) : (
+            <Dashboard />
+          )}
         </main>
       </div>
     </div>
   );
 }
 
+function workspaceFromPath(pathname: string): Workspace {
+  if (pathname === '/profile') return 'profile';
+  if (pathname === '/jobs') return 'jobs';
+  if (pathname === '/applications') return 'applications';
+  return 'dashboard';
+}
+
+function workspacePath(workspace: Workspace) {
+  if (workspace === 'profile') return '/profile';
+  if (workspace === 'jobs') return '/jobs';
+  if (workspace === 'applications') return '/applications';
+  return '/';
+}
+
 function Dashboard() {
   return (
     <section className="hero">
-      <p className="eyebrow">Private by default · Truth before optimization</p>
+      <p className="eyebrow">Private by default - Truth before optimization</p>
       <h1>Your job-search workspace.</h1>
       <p className="hero-copy">
         Product sections remain upcoming while identity and profile foundations are completed
