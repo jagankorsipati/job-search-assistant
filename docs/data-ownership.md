@@ -8,6 +8,7 @@
 | Career fact and verification | Profile module                       | Individual user       |
 | Base résumé and exports      | Documents module                     | Individual user       |
 | Captured job snapshot        | Jobs module                          | Individual user       |
+| Job requirement and evidence link | Fit module, owner-reviewed interpretation and relationship | Individual user       |
 | Fit result                   | Fit module, derived and reproducible | Individual user       |
 | Application state            | Applications module                  | Individual user       |
 | External job posting         | External source                      | External publisher    |
@@ -28,6 +29,7 @@
 - Confirmed career facts are account-owner attestations only. Confirmation does not mean third-party or application verification, and imported or AI-generated text remains draft until the owner confirms it.
 - Base resume metadata and stored files are owned by exactly one account. Upload derives ownership from `CurrentActorProvider`, uses a server-generated opaque storage key, and never trusts browser-supplied owner IDs, filenames as paths, storage keys, or filesystem paths.
 - Captured jobs, job-description snapshots, job applications, and application status history are owned by exactly one account. Child rows use owner-aware parent references so snapshots, applications, and history cannot be attached across owners. Capturing a job, storing a URL reference, or downloading a resume never proves or changes application status.
+- Job requirements and requirement-evidence links are owned by exactly one account. Requirements use owner-aware job and snapshot references so a reviewed interpretation remains attached to the exact immutable snapshot it came from. Evidence links are explicit user assertions and can reference only owner-visible supported evidence after transactional validation.
 
 ## Owner-scoped persistence contract
 
@@ -43,6 +45,7 @@
 - Candidate-profile and career-fact responses do not return `owner_account_id`; ownership is enforced beneath the response boundary.
 - Base resume responses do not return `owner_account_id`, checksums, storage keys, or filesystem paths. Download is owner-scoped and attachment-only.
 - Job and application APIs derive `owner_account_id` from `CurrentActorProvider`, never accept trusted browser owner IDs, and use `WHERE id = ? AND owner_account_id = ?` for individual reads and mutations. Collections filter by owner. Cross-user and nonexistent job/application resources remain indistinguishable.
+- Fit APIs derive `owner_account_id` from `CurrentActorProvider`, never accept trusted browser owner IDs, and use owner predicates for requirements, evidence links, snapshots, and candidate evidence validation. Cross-user and nonexistent requirements, links, snapshots, and evidence targets remain indistinguishable.
 - The frontend profile workspace displays only the authenticated user's profile and career facts. It never accepts or submits owner identifiers, and administrator accounts use the same owner-scoped profile route for their own data only.
 - Profile and career-fact data is held in React memory for the current page lifetime only. It is not written to browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
 
@@ -69,3 +72,5 @@ Phase 4C adds production application and status-history APIs. `ApplicationServic
 Phase 4D adds frontend job and application workspaces that consume owner-scoped APIs without accepting, storing, or submitting owner/account identifiers. Job, snapshot, application, and status-history records remain in memory only while the authenticated session is active. Application creation and status changes are owner declarations made through explicit UI actions; the frontend does not infer application state from job capture, URL references, resume/document actions, AI, or downloads.
 
 Phase 4E adds local bounded search/filtering and duplicate warnings over owner-visible job/application collections. Duplicate checks do not create a shared index, do not perform cross-owner lookup, do not fetch posting URLs, and do not block intentional capture.
+
+Phase 5A adds owner-scoped `job_requirement` and `job_requirement_evidence_link` records. A requirement is a user-reviewed interpretation of one immutable job snapshot, not a candidate fact. Requirement updates use optimistic locking and cannot reassign the job or snapshot. Evidence links use one polymorphic table with constrained evidence types; because PostgreSQL cannot foreign-key one column to multiple target tables, `FitService` validates owner-scoped existence and eligibility transactionally before insert or update. Confirmed career facts, supported profile fields, and the current base resume metadata row are the only supported evidence sources. Rejected requirements are distinguishable so future analysis can exclude them.

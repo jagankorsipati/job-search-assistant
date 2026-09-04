@@ -20,7 +20,7 @@ flowchart TD
 | Identity | Accounts, authentication, sessions, authorization context |
 | Profile | Verified candidate facts and provenance |
 | Jobs | Job capture, metadata, normalization, duplicates |
-| Fit | Requirements, evidence matching, gaps, explanations |
+| Fit | Snapshot-attributed requirements, explicit evidence relationships, future gaps and explanations |
 | Documents | Templates, proposals, approvals, DOCX exports |
 | Applications | Pipeline state, notes, follow-ups, history |
 | Integrations | AI and future job-source adapters |
@@ -47,3 +47,4 @@ flowchart TD
 - Job-source content is untrusted input and cannot issue system instructions.
 - Files are never served by arbitrary filesystem paths.
 - No module may convert an unverified claim into a verified fact.
+- Fit requirements are interpretations of job snapshots; evidence links are owner assertions about existing evidence. Derived scores and explanations must not mutate source requirements or candidate evidence.

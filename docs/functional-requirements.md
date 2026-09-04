@@ -30,8 +30,8 @@
 - **FR-020:** Users can save pasted job text and manually supplied URLs.
 - **FR-021:** Users can edit job title, company, location, source, and description.
 - **FR-022:** The frontend warns about likely duplicates within the currently loaded owner-visible job collection using deterministic normalized URL, external posting ID, and company/title comparisons. Warnings are non-blocking and do not perform cross-owner lookup.
-- **FR-023:** Fit analysis classifies requirements and links matches to verified evidence.
-- **FR-024:** Unknown or missing requirements remain visible as gaps.
+- **FR-023:** Fit analysis stores user-reviewed job requirements for exact immutable job-description snapshots with explicit category, importance, and review status.
+- **FR-024:** Fit analysis links requirements only to explicit owner-selected candidate evidence relationships; unknown or missing evidence remains visible without being treated as proof that the candidate lacks a skill.
 - **FR-025:** Captured jobs are owner-scoped opportunities and do not imply that the owner applied.
 - **FR-026:** Job descriptions are retained as immutable append-only snapshots so later edits or external posting changes do not rewrite history.
 - **FR-027:** Stored posting URLs are references only; the server does not fetch URL content during Phase 4A.
@@ -45,6 +45,8 @@
 - **FR-035:** The authenticated frontend job workspace lets owners capture jobs, edit metadata, view active/archived jobs, archive/restore jobs, view oldest-first immutable description snapshots, append new snapshots, filter/search the bounded loaded collection, and review non-blocking duplicate warnings without sending owner identifiers or fetching posting URLs.
 - **FR-036:** The authenticated frontend application workspace lets owners create DRAFT applications for active captured jobs, filter active/archived applications by exact status plus local text/due-state filters, edit notes and next actions, record only allowed explicit status transitions, view oldest-first status history, and archive/restore applications without sending owner identifiers or inferring status.
 - **FR-037:** Real-browser verification proves job/application ownership, lifecycle behavior, duplicate-warning behavior, optimistic conflict handling, CSRF/session behavior, browser privacy, and safe diagnostics against a disposable PostgreSQL-backed full-stack environment.
+- **FR-048:** Phase 5A requirement and evidence APIs are owner-scoped, no-store, optimistic-lock protected where mutated, bounded, and provide no administrator cross-user bypass.
+- **FR-049:** Phase 5A does not create scores, inferred satisfaction states, automatic requirement extraction, automatic evidence links, resume tailoring, generated bullets, URL fetching, scraping, AI calls, or application submission.
 
 ## Documents
 

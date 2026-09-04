@@ -25,7 +25,8 @@ class WebSecurityConfiguration {
                                 "/api/invitations/accept").permitAll()
                         .requestMatchers("/api/admin/invitations", "/api/admin/accounts/**").hasRole("ADMIN")
                         .requestMatchers("/api/auth/me", "/api/auth/logout", "/api/profile/**",
-                                "/api/documents/**", "/api/jobs/**", "/api/applications/**").authenticated()
+                                "/api/documents/**", "/api/jobs/**", "/api/job-requirements/**",
+                                "/api/job-requirement-evidence/**", "/api/applications/**").authenticated()
                         .anyRequest().denyAll())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)

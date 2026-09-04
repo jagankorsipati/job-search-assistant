@@ -1,0 +1,31 @@
+package com.jobsearchassistant.fit;
+
+import java.util.UUID;
+
+enum ProfileEvidenceField {
+    PROFESSIONAL_DISPLAY_NAME,
+    PROFESSIONAL_HEADLINE,
+    CAREER_SUMMARY,
+    LOCATION_PREFERENCE,
+    TARGET_ROLES,
+    WORK_AUTHORIZATION_STATEMENT,
+    WORK_LOCATION_PREFERENCES;
+
+    static final UUID PROFESSIONAL_DISPLAY_NAME_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    static final UUID PROFESSIONAL_HEADLINE_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    static final UUID CAREER_SUMMARY_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
+    static final UUID LOCATION_PREFERENCE_ID = UUID.fromString("00000000-0000-0000-0000-000000000004");
+    static final UUID TARGET_ROLES_ID = UUID.fromString("00000000-0000-0000-0000-000000000005");
+    static final UUID WORK_AUTHORIZATION_STATEMENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000006");
+    static final UUID WORK_LOCATION_PREFERENCES_ID = UUID.fromString("00000000-0000-0000-0000-000000000007");
+
+    static boolean supported(UUID id) {
+        return PROFESSIONAL_DISPLAY_NAME_ID.equals(id)
+                || PROFESSIONAL_HEADLINE_ID.equals(id)
+                || CAREER_SUMMARY_ID.equals(id)
+                || LOCATION_PREFERENCE_ID.equals(id)
+                || TARGET_ROLES_ID.equals(id)
+                || WORK_AUTHORIZATION_STATEMENT_ID.equals(id)
+                || WORK_LOCATION_PREFERENCES_ID.equals(id);
+    }
+}

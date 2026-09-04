@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 4E is implemented: authenticated `/jobs` and `/applications` workspaces now support owner-scoped job capture, immutable description snapshots, draft application creation, explicit status tracking, notes, next actions, archive/restore, optimistic-conflict recovery, local bounded search/filter refinement, and non-blocking duplicate warnings. Scraping, URL fetching, AI analysis, reminders, and application submission are not included.
+Phase 5A is implemented: authenticated APIs now support owner-scoped, user-reviewed job requirements attached to exact immutable job-description snapshots and explicit links from those requirements to existing confirmed candidate evidence. Fit scores, match percentages, automatic extraction, automatic evidence matching, AI analysis, scraping, resume tailoring, reminders, and application submission are not included.
 
 ## Planned capabilities
 
@@ -112,6 +112,10 @@ Application API endpoints live under `/api/applications`. They derive ownership 
 
 Application status is user-declared. `READY_TO_APPLY -> APPLIED` establishes `appliedAt` from a truthful user-provided timestamp or the server clock, rejects values more than five minutes in the future, and later transitions preserve it. `WITHDRAWN` may happen before or after submission; pre-application withdrawal keeps `appliedAt` absent, while post-application withdrawal preserves it. Terminal outcomes clear next actions but preserve notes and history. No job capture, resume action, document generation, AI output, or download implies an application status.
 
+Fit foundation API endpoints live under `/api/jobs/{jobId}/snapshots/{snapshotId}/requirements`, `/api/job-requirements/{requirementId}`, `/api/job-requirements/{requirementId}/evidence-links`, and `/api/job-requirement-evidence/{linkId}`. Requirements are editable with `expectedVersion` but remain attached to their original job snapshot. Requirement category, importance, and review status are explicit. Evidence links are user-created relationships to existing owner-visible candidate evidence only: confirmed career facts, supported profile fields, or the current base resume metadata row. Lists are capped at 100, responses are no-store, and owner identifiers are omitted.
+
+Phase 5A deliberately does not infer whether a requirement is satisfied. It never converts job-description text into candidate facts, never treats resume text as independently verified, never infers duration, proficiency, recency, work authorization, education, or certification equivalence, and never creates evidence links automatically.
+
 The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
 
 The profile form never autosaves. It sends the current version on update and preserves unsaved edits when a `409` conflict indicates the server changed elsewhere. Career facts are created as draft. Confirmed means the account owner explicitly attested that the fact is accurate; it is not independent verification by an employer, school, certification authority, or the application. Editing a confirmed fact returns it to draft. Draft and confirmed facts can be archived after confirmation; archived facts can be restored to draft, but cannot be edited until restored. Hard deletion remains deferred.
@@ -216,4 +220,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 5 begins deterministic fit analysis. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.
+Phase 5B begins deterministic fit explanations over confirmed requirements and explicit evidence links. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.

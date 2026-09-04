@@ -32,6 +32,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
 - Base résumé metadata carries immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's document metadata or download.
 - Captured jobs, job-description snapshots, job applications, and application status history carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database foreign keys prevent cross-owner snapshots, applications, and history rows. Administrators have no bypass into another member's jobs or applications.
+- Job requirements and requirement-evidence links carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database foreign keys prevent cross-owner job/snapshot attachment, and transactional service validation prevents cross-owner polymorphic evidence references. Administrators have no bypass into another member's fit foundation records.
 - `/api/profile/**` endpoints require authentication. POST and PUT lifecycle operations require CSRF through the existing browser-session protection.
 - Profile and career-fact APIs use safe JSON errors: `400` for malformed input, `401` for unauthenticated access, `404` for nonexistent or non-owned private resources, and `409` for uniqueness, stale-version, or lifecycle conflicts.
 - The `/profile` frontend route restores authenticated sessions through `/api/auth/me`. If profile requests return `401`, the UI clears only in-memory authenticated state and returns to login. It does not persist identity, profile, career-fact, or authorization data in browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
@@ -107,6 +108,14 @@ Phase 4E keeps search and duplicate detection local to the bounded owner-visible
 The frontend preserves the Phase 4 truthfulness boundary: URL references are stored and displayed only as external references, never fetched or scraped by the application; creating an application starts `DRAFT` and does not submit anything; application status changes require deliberate owner action and the allowed transition matrix; conflicts preserve unsaved form values until the owner reloads latest server state.
 
 Phase 4 job/application verification evidence is recorded in the [Phase 4 verification matrix](security/phase-4-verification.md). Browser verification covers member/admin isolation, direct cross-owner API denial with safe not-found shapes, CSRF rejection, optimistic conflicts, URL-reference no-fetch behavior, no browser storage of job/application data, duplicate warnings, local filters, and status-history truthfulness.
+
+## Fit foundation privacy
+
+Phase 5A stores owner-reviewed requirement interpretations and user-controlled evidence relationships. Requirement text, source excerpts, evidence notes, resume content, career facts, profile fields, UUID collections, request bodies, and response bodies must not be logged. Responses omit owner identifiers and use `Cache-Control: no-store`.
+
+A requirement is attributable to exactly one immutable job-description snapshot. Updating job metadata or appending a newer snapshot does not rewrite existing requirements. Draft, confirmed, and rejected requirement statuses remain explicit; rejected requirements are retained as user-reviewed analysis history and are ineligible for future fit analysis.
+
+Evidence links do not prove satisfaction automatically. They record only the owner's selected relationship: supports, partially supports, contradicts, or not demonstrated. Absence of evidence is not treated as proof that the candidate lacks a skill. Phase 5A does not infer experience duration, proficiency, recency, work authorization, education, certification equivalence, or candidate rankings, and it does not create scores, recommendations, generated resume bullets, tailored documents, AI calls, scraping, URL fetching, notifications, or application submission.
 
 ## Network posture
 
