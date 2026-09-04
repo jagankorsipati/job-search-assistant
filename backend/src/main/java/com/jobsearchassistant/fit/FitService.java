@@ -19,6 +19,8 @@ class FitService {
     static final int MAX_REQUIREMENT_LIMIT = 100;
     static final int DEFAULT_LINK_LIMIT = 100;
     static final int MAX_LINK_LIMIT = 100;
+    static final int ANALYSIS_REQUIREMENT_LIMIT = 100;
+    static final int ANALYSIS_LINK_LIMIT = 1000;
     static final int REQUIREMENT_TEXT_MAX = 500;
     static final int SOURCE_EXCERPT_MAX = 2000;
     static final int USER_NOTE_MAX = 1000;
@@ -26,6 +28,7 @@ class FitService {
     private final CurrentActorProvider actors;
     private final FitRepository repository;
     private final Clock clock;
+    private final FitScoringPolicy scoringPolicy;
 
     @Autowired
     FitService(CurrentActorProvider actors, FitRepository repository) {
@@ -36,6 +39,7 @@ class FitService {
         this.actors = actors;
         this.repository = repository;
         this.clock = clock;
+        this.scoringPolicy = new FitScoringPolicy();
     }
 
     @Transactional(readOnly = true)
@@ -139,6 +143,17 @@ class FitService {
         if (!repository.deleteEvidenceLink(linkId, owner, expectedVersion)) {
             throw new FitConflictException("stale_version");
         }
+    }
+
+    @Transactional(readOnly = true)
+    FitAnalysisResult analyzeSnapshot(UUID jobId, UUID snapshotId) {
+        UUID owner = owner();
+        requireSnapshot(owner, jobId, snapshotId);
+        List<JobRequirement> requirements = repository.findRequirements(
+                owner, jobId, snapshotId, ANALYSIS_REQUIREMENT_LIMIT);
+        List<CandidateEvidenceLink> links = repository.findEvidenceLinksForSnapshot(
+                owner, jobId, snapshotId, ANALYSIS_LINK_LIMIT);
+        return scoringPolicy.score(requirements, links);
     }
 
     private RequirementInput validateRequirement(RequirementInput input) {

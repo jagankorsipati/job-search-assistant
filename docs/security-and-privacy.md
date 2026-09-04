@@ -117,6 +117,8 @@ A requirement is attributable to exactly one immutable job-description snapshot.
 
 Evidence links do not prove satisfaction automatically. They record only the owner's selected relationship: supports, partially supports, contradicts, or not demonstrated. Absence of evidence is not treated as proof that the candidate lacks a skill. Phase 5A does not infer experience duration, proficiency, recency, work authorization, education, certification equivalence, or candidate rankings, and it does not create scores, recommendations, generated resume bullets, tailored documents, AI calls, scraping, URL fetching, notifications, or application submission.
 
+Phase 5B computes fit results on demand with policy `DETERMINISTIC_FIT_V1`. The evidence-support score measures only how strongly currently linked confirmed evidence demonstrates confirmed requirements; it is not a hiring probability, candidate-quality judgment, eligibility decision, recruiter decision, or proof that the candidate has or lacks a qualification. Evidence coverage is reported separately so a high support score with low review coverage remains distinguishable. The internal result avoids private text and notes, is not persisted, and is not exposed through a public route in Phase 5B.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

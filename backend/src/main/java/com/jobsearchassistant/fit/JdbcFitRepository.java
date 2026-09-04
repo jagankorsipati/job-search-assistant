@@ -103,6 +103,21 @@ class JdbcFitRepository implements FitRepository {
                 .query(this::mapLink).list();
     }
 
+    public List<CandidateEvidenceLink> findEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId, int limit) {
+        return jdbc.sql(linkSelect() + """
+                WHERE owner_account_id = :owner
+                  AND job_requirement_id IN (
+                      SELECT id
+                      FROM job_search_assistant.job_requirement
+                      WHERE owner_account_id = :owner AND job_id = :jobId AND job_snapshot_id = :snapshotId
+                  )
+                ORDER BY job_requirement_id, created_at DESC, id DESC
+                LIMIT :limit
+                """)
+                .param("owner", ownerAccountId).param("jobId", jobId).param("snapshotId", snapshotId).param("limit", limit)
+                .query(this::mapLink).list();
+    }
+
     public Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId) {
         return jdbc.sql(linkSelect() + " WHERE id = :id AND owner_account_id = :owner")
                 .param("id", linkId).param("owner", ownerAccountId).query(this::mapLink).optional();

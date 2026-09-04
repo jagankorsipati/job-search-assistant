@@ -182,6 +182,18 @@ class FitServiceTests {
                     && l.jobRequirementId().equals(requirementId)).limit(limit).toList();
         }
 
+        public List<CandidateEvidenceLink> findEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId, int limit) {
+            Set<UUID> requirementIds = requirements.stream()
+                    .filter(r -> r.ownerAccountId().equals(ownerAccountId) && r.jobId().equals(jobId)
+                            && r.jobSnapshotId().equals(snapshotId))
+                    .map(JobRequirement::id)
+                    .collect(java.util.stream.Collectors.toSet());
+            return links.stream()
+                    .filter(l -> l.ownerAccountId().equals(ownerAccountId)
+                            && requirementIds.contains(l.jobRequirementId()))
+                    .limit(limit).toList();
+        }
+
         public Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId) {
             return links.stream().filter(l -> l.id().equals(linkId) && l.ownerAccountId().equals(ownerAccountId)).findFirst();
         }

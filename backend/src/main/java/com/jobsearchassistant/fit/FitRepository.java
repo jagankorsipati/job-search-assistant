@@ -19,6 +19,8 @@ interface FitRepository {
 
     List<CandidateEvidenceLink> findEvidenceLinks(UUID ownerAccountId, UUID requirementId, int limit);
 
+    List<CandidateEvidenceLink> findEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId, int limit);
+
     Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId);
 
     void insertEvidenceLink(CandidateEvidenceLink link);

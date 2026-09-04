@@ -47,6 +47,10 @@
 - **FR-037:** Real-browser verification proves job/application ownership, lifecycle behavior, duplicate-warning behavior, optimistic conflict handling, CSRF/session behavior, browser privacy, and safe diagnostics against a disposable PostgreSQL-backed full-stack environment.
 - **FR-048:** Phase 5A requirement and evidence APIs are owner-scoped, no-store, optimistic-lock protected where mutated, bounded, and provide no administrator cross-user bypass.
 - **FR-049:** Phase 5A does not create scores, inferred satisfaction states, automatic requirement extraction, automatic evidence links, resume tailoring, generated bullets, URL fetching, scraping, AI calls, or application submission.
+- **FR-054:** Phase 5B computes internal fit analysis on demand from confirmed requirements and explicit evidence links only, excluding draft and rejected requirements from denominators while reporting their counts.
+- **FR-055:** Phase 5B reports separate evidence-support and evidence-coverage scores using fixed requirement weights, fixed assessment credits, exact decimal arithmetic, and half-up whole-number rounding.
+- **FR-056:** Phase 5B reports structured per-requirement assessments, per-importance breakdowns, gaps, partial gaps, contradictions, and policy version without copying private requirement text, source excerpts, resume content, career facts, profile values, or evidence notes into scoring output.
+- **FR-057:** Phase 5B adds no public analysis route, frontend screen, persisted score/result row, AI call, automatic extraction, automatic evidence-link creation, candidate ranking, recommendation, scraping, or resume tailoring.
 
 ## Documents
 

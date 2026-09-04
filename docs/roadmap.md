@@ -46,10 +46,10 @@ Each milestone should be independently reviewable and committable.
 ## Phase 5 — Deterministic fit analysis
 
 - Phase 5A complete: owner-scoped job requirements attached to exact immutable job-description snapshots, explicit requirement category/importance/review status, user-controlled links to existing confirmed candidate evidence, optimistic locking, bounded APIs, and documented truthfulness boundaries
-- Phase 5B: deterministic fit explanations over confirmed requirements and explicit evidence links
+- Phase 5B complete: internal deterministic fit scoring policy over confirmed requirements and explicit evidence links, with support and coverage scores, per-importance breakdowns, structured gaps and contradictions, and no persistence or public analysis route
 - Phase 5C: frontend review workflows for requirements and evidence selection
 - Phase 5D: real-browser fit-analysis verification
-- Explainable scoring without AI dependency remains deferred until after the evidence foundation
+- Public presentation of explainable scoring remains deferred until Phase 5C
 
 ## Phase 6 — Truthful document tailoring
 

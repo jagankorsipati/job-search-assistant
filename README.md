@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 5A is implemented: authenticated APIs now support owner-scoped, user-reviewed job requirements attached to exact immutable job-description snapshots and explicit links from those requirements to existing confirmed candidate evidence. Fit scores, match percentages, automatic extraction, automatic evidence matching, AI analysis, scraping, resume tailoring, reminders, and application submission are not included.
+Phase 5B is implemented as an internal backend milestone: the Fit module can compute deterministic, explainable evidence-support and evidence-coverage scores over confirmed job requirements and explicit candidate-evidence links. Public analysis routes, frontend review screens, persisted scores, AI analysis, automatic extraction, automatic evidence matching, scraping, resume tailoring, reminders, and application submission are not included.
 
 ## Planned capabilities
 
@@ -116,6 +116,8 @@ Fit foundation API endpoints live under `/api/jobs/{jobId}/snapshots/{snapshotId
 
 Phase 5A deliberately does not infer whether a requirement is satisfied. It never converts job-description text into candidate facts, never treats resume text as independently verified, never infers duration, proficiency, recency, work authorization, education, or certification equivalence, and never creates evidence links automatically.
 
+Phase 5B adds an internal deterministic scoring policy, `DETERMINISTIC_FIT_V1`. Only confirmed requirements participate; draft and rejected requirements are excluded from denominators but counted in the result. Required requirements have weight 2, preferred and unspecified requirements have weight 1. Demonstrated evidence receives credit 1.0, partial support receives 0.5, and not-demonstrated, contradicted, conflicting, and unassessed requirements receive 0.0. Support and coverage scores use exact decimal arithmetic and half-up whole-number rounding. Contradictions, conflicting evidence, gaps, partial gaps, and per-importance breakdowns are returned as structured reason codes without copying requirement text, source excerpts, resume content, career facts, profile values, or evidence notes. Results are computed on demand and never persisted.
+
 The frontend profile workspace is available at `/profile` after sign-in. Refreshing that path restores the existing session and reopens the workspace; unauthenticated or expired sessions return to the login screen. The browser keeps profile, career-fact, identity, and authorization data only in memory. It does not write that data to `localStorage`, `sessionStorage`, IndexedDB, URL query parameters, URL fragments, or client-readable cookies.
 
 The profile form never autosaves. It sends the current version on update and preserves unsaved edits when a `409` conflict indicates the server changed elsewhere. Career facts are created as draft. Confirmed means the account owner explicitly attested that the fact is accurate; it is not independent verification by an employer, school, certification authority, or the application. Editing a confirmed fact returns it to draft. Draft and confirmed facts can be archived after confirmation; archived facts can be restored to draft, but cannot be edited until restored. Hard deletion remains deferred.
@@ -220,4 +222,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 ## Next milestone
 
-Phase 5B begins deterministic fit explanations over confirmed requirements and explicit evidence links. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.
+Phase 5C begins fit-analysis presentation and review workflows over the internal deterministic result. Recovery, deletion, role changes, additional administrators, delegated access, AI, document parsing, malware scanning, URL fetching, job scraping, notifications, and application submission remain out of scope.
