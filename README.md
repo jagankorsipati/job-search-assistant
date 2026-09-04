@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 5B is implemented as an internal backend milestone: the Fit module can compute deterministic, explainable evidence-support and evidence-coverage scores over confirmed job requirements and explicit candidate-evidence links. Public analysis routes, frontend review screens, persisted scores, AI analysis, automatic extraction, automatic evidence matching, scraping, resume tailoring, reminders, and application submission are not included.
+Phase 5C is implemented as a backend API milestone: authenticated users can request `GET /api/jobs/{jobId}/snapshots/{snapshotId}/fit-analysis` for exactly one owned immutable job-description snapshot. The response is computed on demand with `DETERMINISTIC_FIT_V1`, separates evidence-support from review coverage, explains each confirmed requirement, and uses `Cache-Control: no-store`. Frontend fit-analysis screens, persisted scores, AI analysis, automatic extraction, automatic evidence matching, scraping, resume tailoring, reminders, and application submission are not included.
 
 ## Planned capabilities
 

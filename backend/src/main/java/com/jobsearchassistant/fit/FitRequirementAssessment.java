@@ -1,6 +1,7 @@
 package com.jobsearchassistant.fit;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 record FitRequirementAssessment(
@@ -12,5 +13,10 @@ record FitRequirementAssessment(
         BigDecimal evidenceCredit,
         BigDecimal weightedContribution,
         EvidenceRelationshipCounts evidenceRelationshipCounts,
-        FitReasonCode reasonCode) {
+        FitReasonCode reasonCode,
+        JobRequirement requirement,
+        List<CandidateEvidenceLink> evidenceLinks) {
+    FitRequirementAssessment {
+        evidenceLinks = List.copyOf(evidenceLinks);
+    }
 }

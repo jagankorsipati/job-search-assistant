@@ -119,6 +119,8 @@ Evidence links do not prove satisfaction automatically. They record only the own
 
 Phase 5B computes fit results on demand with policy `DETERMINISTIC_FIT_V1`. The evidence-support score measures only how strongly currently linked confirmed evidence demonstrates confirmed requirements; it is not a hiring probability, candidate-quality judgment, eligibility decision, recruiter decision, or proof that the candidate has or lacks a qualification. Evidence coverage is reported separately so a high support score with low review coverage remains distinguishable. The internal result avoids private text and notes, is not persisted, and is not exposed through a public route in Phase 5B.
 
+Phase 5C exposes that result through `GET /api/jobs/{jobId}/snapshots/{snapshotId}/fit-analysis` for authenticated owners only. The endpoint accepts no owner identifiers, provides no administrator bypass, returns the same safe not-found shape for foreign, nonexistent, or mismatched job/snapshot identifiers, and uses `Cache-Control: no-store`. It returns requirement text, source excerpts, and evidence notes only from records already owned by the requester and needed to explain the calculation; evidence summaries do not expand into resume content, career-fact details, or profile values. Oversized analysis inputs return `analysis_too_large` instead of a truncated score.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

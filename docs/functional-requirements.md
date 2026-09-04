@@ -51,6 +51,9 @@
 - **FR-055:** Phase 5B reports separate evidence-support and evidence-coverage scores using fixed requirement weights, fixed assessment credits, exact decimal arithmetic, and half-up whole-number rounding.
 - **FR-056:** Phase 5B reports structured per-requirement assessments, per-importance breakdowns, gaps, partial gaps, contradictions, and policy version without copying private requirement text, source excerpts, resume content, career facts, profile values, or evidence notes into scoring output.
 - **FR-057:** Phase 5B adds no public analysis route, frontend screen, persisted score/result row, AI call, automatic extraction, automatic evidence-link creation, candidate ranking, recommendation, scraping, or resume tailoring.
+- **FR-058:** Phase 5C exposes a read-only authenticated fit-analysis endpoint for exactly one owned job-description snapshot. It derives ownership from the session, returns safe not-found for foreign or mismatched job/snapshot identifiers, and provides no administrator bypass.
+- **FR-059:** Phase 5C responses include policy version, non-scorable status, distinct evidence-support and evidence-coverage scores, calculation inputs, per-importance breakdowns, per-confirmed-requirement explanations, minimal evidence-link summaries, neutral gap findings, contradiction findings, and no owner identifiers.
+- **FR-060:** Phase 5C analysis is computed fresh, not cached or persisted, uses no AI/inference/matching/scraping, uses no-store HTTP responses, and refuses oversized input sets rather than scoring truncated requirements or evidence links.
 
 ## Documents
 

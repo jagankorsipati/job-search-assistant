@@ -1,9 +1,13 @@
 package com.jobsearchassistant.fit;
 
 import java.time.Instant;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.jobsearchassistant.identity.api.UnauthenticatedActorException;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -40,6 +44,11 @@ class FitController {
             @PathVariable UUID snapshotId,
             @RequestParam(required = false) Integer limit) {
         return ok(service.listRequirements(jobId, snapshotId, limit).stream().map(RequirementResponse::from).toList());
+    }
+
+    @GetMapping("/jobs/{jobId}/snapshots/{snapshotId}/fit-analysis")
+    ResponseEntity<FitAnalysisResponse> analyzeFit(@PathVariable UUID jobId, @PathVariable UUID snapshotId) {
+        return ok(FitAnalysisResponse.from(jobId, snapshotId, service.analyzeSnapshot(jobId, snapshotId)));
     }
 
     @PostMapping("/jobs/{jobId}/snapshots/{snapshotId}/requirements")
@@ -107,6 +116,11 @@ class FitController {
     @ExceptionHandler(FitConflictException.class)
     ResponseEntity<Map<String, Object>> conflict(FitConflictException conflict) {
         return problem(HttpStatus.CONFLICT, "Fit operation conflict", conflict.getMessage());
+    }
+
+    @ExceptionHandler(FitAnalysisTooLargeException.class)
+    ResponseEntity<Map<String, Object>> analysisTooLarge() {
+        return problem(HttpStatus.CONFLICT, "Fit analysis is too large", "analysis_too_large");
     }
 
     @ExceptionHandler({IllegalArgumentException.class, HttpMessageNotReadableException.class,
@@ -229,5 +243,162 @@ class FitController {
                     link.evidenceId(), link.relationship(), link.userNote(), link.createdAt(),
                     link.updatedAt(), link.version());
         }
+    }
+
+    record FitAnalysisResponse(
+            String policyVersion,
+            FitAnalysisStatus analysisStatus,
+            UUID jobId,
+            UUID snapshotId,
+            Integer evidenceSupportScore,
+            Integer evidenceCoverageScore,
+            int confirmedRequirementCount,
+            int draftRequirementCount,
+            int rejectedRequirementCount,
+            int totalEligibleWeight,
+            BigDecimal supportPoints,
+            BigDecimal assessedWeight,
+            List<ImportanceBreakdownResponse> importanceBreakdowns,
+            List<RequirementAssessmentResponse> requirementAssessments,
+            List<FindingResponse> gaps,
+            List<FindingResponse> contradictions) {
+        static FitAnalysisResponse from(UUID jobId, UUID snapshotId, FitAnalysisResult result) {
+            List<RequirementAssessmentResponse> assessments = result.requirementAssessments().stream()
+                    .map(RequirementAssessmentResponse::from)
+                    .toList();
+            int totalEligibleWeight = assessments.stream().mapToInt(RequirementAssessmentResponse::requirementWeight).sum();
+            BigDecimal supportPoints = assessments.stream()
+                    .map(RequirementAssessmentResponse::weightedContribution)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add).stripTrailingZeros();
+            BigDecimal assessedWeight = BigDecimal.valueOf(assessments.stream()
+                    .filter(assessment -> assessment.assessment() != RequirementAssessment.UNASSESSED)
+                    .mapToInt(RequirementAssessmentResponse::requirementWeight).sum()).stripTrailingZeros();
+            List<FindingResponse> gaps = new ArrayList<>();
+            result.gaps().stream().map(FindingResponse::from).forEach(gaps::add);
+            result.partialGaps().stream().map(FindingResponse::from).forEach(gaps::add);
+            return new FitAnalysisResponse(result.policyVersion(), result.status(), jobId, snapshotId,
+                    scoreValue(result.evidenceSupportScore()), scoreValue(result.evidenceCoverageScore()),
+                    result.totalConfirmedRequirementCount(), result.draftRequirementCount(),
+                    result.rejectedRequirementCount(), totalEligibleWeight, supportPoints, assessedWeight,
+                    result.breakdowns().entrySet().stream()
+                            .sorted(Map.Entry.comparingByKey(Comparator.comparingInt(FitController::importanceOrder)))
+                            .map(entry -> ImportanceBreakdownResponse.from(entry.getValue()))
+                            .toList(),
+                    assessments, gaps, result.contradictions().stream().map(FindingResponse::from).toList());
+        }
+
+        private static Integer scoreValue(FitScore score) {
+            return score == null ? null : score.score();
+        }
+    }
+
+    record ImportanceBreakdownResponse(
+            RequirementImportance importance,
+            boolean applicable,
+            int confirmedRequirementCount,
+            int totalWeight,
+            int assessedCount,
+            int demonstratedCount,
+            int partiallyDemonstratedCount,
+            int notDemonstratedCount,
+            int contradictedCount,
+            int conflictingEvidenceCount,
+            int unassessedCount,
+            Integer evidenceSupportScore,
+            Integer evidenceCoverageScore) {
+        static ImportanceBreakdownResponse from(FitImportanceBreakdown breakdown) {
+            return new ImportanceBreakdownResponse(breakdown.importance(), breakdown.applicable(),
+                    breakdown.confirmedRequirementCount(), breakdown.totalWeight(), breakdown.assessedCount(),
+                    breakdown.demonstratedCount(), breakdown.partiallyDemonstratedCount(),
+                    breakdown.notDemonstratedCount(), breakdown.contradictedCount(),
+                    breakdown.conflictingEvidenceCount(), breakdown.unassessedCount(),
+                    FitAnalysisResponse.scoreValue(breakdown.supportScore()),
+                    FitAnalysisResponse.scoreValue(breakdown.coverageScore()));
+        }
+    }
+
+    record RequirementAssessmentResponse(
+            UUID requirementId,
+            RequirementCategory requirementCategory,
+            RequirementImportance importance,
+            RequirementStatus requirementStatus,
+            String requirementText,
+            String sourceExcerpt,
+            RequirementAssessment assessment,
+            FitReasonCode reasonCode,
+            int requirementWeight,
+            BigDecimal evidenceCredit,
+            BigDecimal weightedContribution,
+            EvidenceRelationshipCounts evidenceRelationshipCounts,
+            List<EvidenceLinkSummaryResponse> evidenceLinks) {
+        static RequirementAssessmentResponse from(FitRequirementAssessment assessment) {
+            return new RequirementAssessmentResponse(assessment.requirement().id(), assessment.requirement().category(),
+                    assessment.requirement().importance(), assessment.requirement().status(),
+                    assessment.requirement().requirementText(), assessment.requirement().sourceExcerpt(),
+                    assessment.assessment(), assessment.reasonCode(), assessment.requirementWeight(),
+                    assessment.evidenceCredit(), assessment.weightedContribution(),
+                    assessment.evidenceRelationshipCounts(), assessment.evidenceLinks().stream()
+                            .sorted(Comparator.comparing(CandidateEvidenceLink::relationship,
+                                            Comparator.comparingInt(EvidenceRelationship::ordinal))
+                                    .thenComparing(CandidateEvidenceLink::evidenceType,
+                                            Comparator.comparingInt(EvidenceType::ordinal))
+                                    .thenComparing(CandidateEvidenceLink::createdAt)
+                                    .thenComparing(CandidateEvidenceLink::id))
+                            .map(EvidenceLinkSummaryResponse::from)
+                            .toList());
+        }
+    }
+
+    record EvidenceLinkSummaryResponse(
+            UUID evidenceLinkId,
+            EvidenceType evidenceType,
+            UUID evidenceId,
+            EvidenceRelationship relationship,
+            String userNote,
+            String evidenceReference) {
+        static EvidenceLinkSummaryResponse from(CandidateEvidenceLink link) {
+            return new EvidenceLinkSummaryResponse(link.id(), link.evidenceType(), link.evidenceId(),
+                    link.relationship(), link.userNote(), link.evidenceType().name());
+        }
+    }
+
+    record FindingResponse(
+            FitFindingType findingType,
+            UUID requirementId,
+            RequirementCategory requirementCategory,
+            RequirementImportance importance,
+            RequirementAssessment assessment,
+            FitReasonCode reasonCode) {
+        static FindingResponse from(FitFinding finding) {
+            return new FindingResponse(FitFindingType.from(finding.assessment()), finding.requirementId(),
+                    finding.category(), finding.importance(), finding.assessment(), finding.reasonCode());
+        }
+    }
+
+    enum FitFindingType {
+        UNASSESSED_REQUIREMENT,
+        EVIDENCE_NOT_DEMONSTRATED,
+        PARTIAL_EVIDENCE,
+        CONTRADICTING_EVIDENCE,
+        CONFLICTING_EVIDENCE;
+
+        static FitFindingType from(RequirementAssessment assessment) {
+            return switch (assessment) {
+                case UNASSESSED -> UNASSESSED_REQUIREMENT;
+                case NOT_DEMONSTRATED -> EVIDENCE_NOT_DEMONSTRATED;
+                case PARTIALLY_DEMONSTRATED -> PARTIAL_EVIDENCE;
+                case CONTRADICTED -> CONTRADICTING_EVIDENCE;
+                case CONFLICTING_EVIDENCE -> CONFLICTING_EVIDENCE;
+                case DEMONSTRATED -> throw new IllegalArgumentException("demonstrated findings are unsupported");
+            };
+        }
+    }
+
+    private static int importanceOrder(RequirementImportance importance) {
+        return switch (importance) {
+            case REQUIRED -> 0;
+            case PREFERRED -> 1;
+            case UNSPECIFIED -> 2;
+        };
     }
 }

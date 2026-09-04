@@ -150,6 +150,13 @@ class FitServiceTests {
                     .limit(limit).toList();
         }
 
+        public int countRequirements(UUID ownerAccountId, UUID jobId, UUID snapshotId) {
+            return (int) requirements.stream()
+                    .filter(r -> r.ownerAccountId().equals(ownerAccountId) && r.jobId().equals(jobId)
+                            && r.jobSnapshotId().equals(snapshotId))
+                    .count();
+        }
+
         public Optional<JobRequirement> findRequirement(UUID requirementId, UUID ownerAccountId) {
             return requirements.stream()
                     .filter(r -> r.id().equals(requirementId) && r.ownerAccountId().equals(ownerAccountId))
@@ -192,6 +199,18 @@ class FitServiceTests {
                     .filter(l -> l.ownerAccountId().equals(ownerAccountId)
                             && requirementIds.contains(l.jobRequirementId()))
                     .limit(limit).toList();
+        }
+
+        public int countEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId) {
+            Set<UUID> requirementIds = requirements.stream()
+                    .filter(r -> r.ownerAccountId().equals(ownerAccountId) && r.jobId().equals(jobId)
+                            && r.jobSnapshotId().equals(snapshotId))
+                    .map(JobRequirement::id)
+                    .collect(java.util.stream.Collectors.toSet());
+            return (int) links.stream()
+                    .filter(l -> l.ownerAccountId().equals(ownerAccountId)
+                            && requirementIds.contains(l.jobRequirementId()))
+                    .count();
         }
 
         public Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId) {

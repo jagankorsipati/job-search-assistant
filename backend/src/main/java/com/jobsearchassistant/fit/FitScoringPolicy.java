@@ -154,7 +154,7 @@ final class FitScoringPolicy {
         BigDecimal credit = credit(assessment);
         return new FitRequirementAssessment(requirement.id(), requirement.category(), requirement.importance(),
                 assessment, weight, credit, credit.multiply(BigDecimal.valueOf(weight)).stripTrailingZeros(),
-                counts, reason);
+                counts, reason, requirement, links);
     }
 
     private EvidenceRelationshipCounts counts(List<CandidateEvidenceLink> links) {

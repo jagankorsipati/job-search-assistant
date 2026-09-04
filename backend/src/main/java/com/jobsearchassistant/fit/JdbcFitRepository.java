@@ -43,6 +43,15 @@ class JdbcFitRepository implements FitRepository {
                 .query(this::mapRequirement).list();
     }
 
+    public int countRequirements(UUID ownerAccountId, UUID jobId, UUID snapshotId) {
+        return jdbc.sql("""
+                SELECT count(*) FROM job_search_assistant.job_requirement
+                WHERE owner_account_id = :owner AND job_id = :jobId AND job_snapshot_id = :snapshotId
+                """)
+                .param("owner", ownerAccountId).param("jobId", jobId).param("snapshotId", snapshotId)
+                .query(Integer.class).single();
+    }
+
     public Optional<JobRequirement> findRequirement(UUID requirementId, UUID ownerAccountId) {
         return jdbc.sql(requirementSelect() + " WHERE id = :id AND owner_account_id = :owner")
                 .param("id", requirementId).param("owner", ownerAccountId).query(this::mapRequirement).optional();
@@ -116,6 +125,21 @@ class JdbcFitRepository implements FitRepository {
                 """)
                 .param("owner", ownerAccountId).param("jobId", jobId).param("snapshotId", snapshotId).param("limit", limit)
                 .query(this::mapLink).list();
+    }
+
+    public int countEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId) {
+        return jdbc.sql("""
+                SELECT count(*)
+                FROM job_search_assistant.job_requirement_evidence_link
+                WHERE owner_account_id = :owner
+                  AND job_requirement_id IN (
+                      SELECT id
+                      FROM job_search_assistant.job_requirement
+                      WHERE owner_account_id = :owner AND job_id = :jobId AND job_snapshot_id = :snapshotId
+                  )
+                """)
+                .param("owner", ownerAccountId).param("jobId", jobId).param("snapshotId", snapshotId)
+                .query(Integer.class).single();
     }
 
     public Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId) {

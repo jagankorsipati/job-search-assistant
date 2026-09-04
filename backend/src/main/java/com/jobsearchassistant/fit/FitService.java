@@ -149,6 +149,10 @@ class FitService {
     FitAnalysisResult analyzeSnapshot(UUID jobId, UUID snapshotId) {
         UUID owner = owner();
         requireSnapshot(owner, jobId, snapshotId);
+        if (repository.countRequirements(owner, jobId, snapshotId) > ANALYSIS_REQUIREMENT_LIMIT
+                || repository.countEvidenceLinksForSnapshot(owner, jobId, snapshotId) > ANALYSIS_LINK_LIMIT) {
+            throw new FitAnalysisTooLargeException();
+        }
         List<JobRequirement> requirements = repository.findRequirements(
                 owner, jobId, snapshotId, ANALYSIS_REQUIREMENT_LIMIT);
         List<CandidateEvidenceLink> links = repository.findEvidenceLinksForSnapshot(

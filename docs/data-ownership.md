@@ -19,7 +19,7 @@
 - Every user-owned row carries an immutable owner identifier.
 - Repositories require owner scope; controller-supplied owner IDs are not trusted.
 - Stored files use generated identifiers, not user-provided paths.
-- Derived analysis records the inputs and policy/model version used only when a future persistence decision explicitly requires it; Phase 5B fit scoring is computed on demand and not persisted.
+- Derived analysis records the inputs and policy/model version used only when a future persistence decision explicitly requires it; Phase 5B/5C fit scoring is computed on demand and not persisted.
 - Job snapshots are preserved so later source changes do not rewrite application history.
 - Deletion removes active records and files, then expires them from backups according to documented retention.
 - Household membership does not imply access to another member's records.
@@ -76,3 +76,5 @@ Phase 4E adds local bounded search/filtering and duplicate warnings over owner-v
 Phase 5A adds owner-scoped `job_requirement` and `job_requirement_evidence_link` records. A requirement is a user-reviewed interpretation of one immutable job snapshot, not a candidate fact. Requirement updates use optimistic locking and cannot reassign the job or snapshot. Evidence links use one polymorphic table with constrained evidence types; because PostgreSQL cannot foreign-key one column to multiple target tables, `FitService` validates owner-scoped existence and eligibility transactionally before insert or update. Confirmed career facts, supported profile fields, and the current base resume metadata row are the only supported evidence sources. Rejected requirements are distinguishable so future analysis can exclude them.
 
 Phase 5B adds no owned scoring table. `FitService` derives the owner from `CurrentActorProvider`, verifies the owner-scoped job snapshot, loads owner-scoped requirements and evidence links, and computes the deterministic result in memory. The result contains structured scoring metadata and resource identifiers only; display text remains in the source owner-scoped records.
+
+Phase 5C adds a read-only owner-scoped analysis API over the same derived result. The endpoint analyzes exactly the requested owned job snapshot, refuses oversized requirement or evidence-link sets before scoring, and returns no owner/account identifiers. Requirement text, source excerpts, and user notes appear only as owner-visible explanation fields in the response and are not copied into a score table, cache, audit event, or background job.

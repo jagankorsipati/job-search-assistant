@@ -9,6 +9,8 @@ interface FitRepository {
 
     List<JobRequirement> findRequirements(UUID ownerAccountId, UUID jobId, UUID snapshotId, int limit);
 
+    int countRequirements(UUID ownerAccountId, UUID jobId, UUID snapshotId);
+
     Optional<JobRequirement> findRequirement(UUID requirementId, UUID ownerAccountId);
 
     void insertRequirement(JobRequirement requirement);
@@ -20,6 +22,8 @@ interface FitRepository {
     List<CandidateEvidenceLink> findEvidenceLinks(UUID ownerAccountId, UUID requirementId, int limit);
 
     List<CandidateEvidenceLink> findEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId, int limit);
+
+    int countEvidenceLinksForSnapshot(UUID ownerAccountId, UUID jobId, UUID snapshotId);
 
     Optional<CandidateEvidenceLink> findEvidenceLink(UUID linkId, UUID ownerAccountId);
 
