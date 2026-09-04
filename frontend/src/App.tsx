@@ -410,7 +410,7 @@ function Shell({
 
 function workspaceFromPath(pathname: string): Workspace {
   if (pathname === '/profile') return 'profile';
-  if (pathname === '/jobs') return 'jobs';
+  if (pathname === '/jobs' || pathname.startsWith('/jobs/')) return 'jobs';
   if (pathname === '/applications') return 'applications';
   return 'dashboard';
 }

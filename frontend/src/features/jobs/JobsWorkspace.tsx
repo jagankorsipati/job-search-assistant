@@ -1,4 +1,12 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ApiError } from '../../api/client';
 import {
   employmentTypes,
@@ -10,6 +18,7 @@ import {
   type JobDescriptionSnapshot,
   type JobSourceType,
 } from '../../api/jobs';
+import { FitAnalysisWorkspace } from '../fit/FitAnalysisWorkspace';
 
 const blankJobForm: JobForm = {
   companyName: '',
@@ -66,6 +75,10 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
   const [sourceFilter, setSourceFilter] = useState<JobSourceType | ''>('');
   const [employmentFilter, setEmploymentFilter] = useState<EmploymentType | ''>('');
   const [duplicateWarning, setDuplicateWarning] = useState<DuplicateWarning | undefined>();
+  const [fitRoute, setFitRoute] = useState<{ jobId: string; snapshotId: string } | undefined>(
+    fitRouteFromPath(window.location.pathname),
+  );
+  const selectedLoadSequence = useRef(0);
 
   const filteredJobs = useMemo(
     () => jobs.filter((job) => matchesJobFilters(job, searchText, sourceFilter, employmentFilter)),
@@ -96,7 +109,9 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
   }, [archived, onExpired]);
 
   const loadSelected = useCallback(async () => {
-    if (!selectedId) {
+    const idToLoad = fitRoute?.jobId ?? selectedId;
+    const loadSequence = ++selectedLoadSequence.current;
+    if (!idToLoad) {
       setSelected(undefined);
       setSnapshots([]);
       return;
@@ -104,10 +119,12 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
     setFailure('');
     try {
       const [job, history] = await Promise.all([
-        jobsApi.getJob(selectedId),
-        jobsApi.listSnapshots(selectedId, 50),
+        jobsApi.getJob(idToLoad),
+        jobsApi.listSnapshots(idToLoad, 50),
       ]);
+      if (loadSequence !== selectedLoadSequence.current) return;
       setSelected(job);
+      setSelectedId(job.id);
       setEditForm(jobToForm(job));
       setSnapshots(history);
       setEditing(false);
@@ -116,7 +133,7 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
       if (error instanceof ApiError && error.status === 401) onExpired();
       else setFailure(readableError(error, 'The selected job could not be loaded.'));
     }
-  }, [onExpired, selectedId]);
+  }, [fitRoute?.jobId, onExpired, selectedId]);
 
   useEffect(() => {
     const load = async () => {
@@ -254,6 +271,49 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
       setBusy(false);
     }
   };
+
+  const openFit = (snapshot: JobDescriptionSnapshot) => {
+    if (!selected) return;
+    window.history.pushState(null, '', `/jobs/${selected.id}/snapshots/${snapshot.id}/fit`);
+    setFitRoute({ jobId: selected.id, snapshotId: snapshot.id });
+  };
+
+  const closeFit = () => {
+    window.history.pushState(null, '', '/jobs');
+    setFitRoute(undefined);
+  };
+
+  const fitSnapshot = fitRoute
+    ? snapshots.find((snapshot) => snapshot.id === fitRoute.snapshotId)
+    : undefined;
+
+  if (fitRoute) {
+    if (selected && fitSnapshot) {
+      return (
+        <FitAnalysisWorkspace
+          job={selected}
+          snapshot={fitSnapshot}
+          onBack={closeFit}
+          onExpired={onExpired}
+        />
+      );
+    }
+    return (
+      <section className="workspace-section" aria-labelledby="fit-loading-title">
+        <h1 id="fit-loading-title">Fit review</h1>
+        {failure ? (
+          <div className="alert" role="alert">
+            <p>{failure}</p>
+            <button type="button" onClick={closeFit}>
+              Back to jobs
+            </button>
+          </div>
+        ) : (
+          <p>Loading fit review...</p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="workspace-section" aria-labelledby="jobs-title">
@@ -459,7 +519,10 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
               <section aria-labelledby="snapshots-title">
                 <h3 id="snapshots-title">Description snapshots</h3>
                 {snapshots.length === 0 ? (
-                  <p className="empty-note">No description snapshots yet.</p>
+                  <p className="empty-note">
+                    No description snapshots yet. Add a job-description snapshot before reviewing
+                    fit.
+                  </p>
                 ) : (
                   <ol className="timeline">
                     {snapshots.map((snapshot) => (
@@ -471,6 +534,13 @@ export function JobsWorkspace({ onExpired }: { onExpired: () => void }) {
                           </summary>
                           <pre>{snapshot.descriptionText}</pre>
                         </details>
+                        <button
+                          className="secondary-button"
+                          type="button"
+                          onClick={() => openFit(snapshot)}
+                        >
+                          Review fit
+                        </button>
                       </li>
                     ))}
                   </ol>
@@ -555,6 +625,7 @@ function JobFormView({
 }) {
   return (
     <form
+      aria-label={title}
       className="profile-form compact-form"
       onSubmit={(event) => void onSubmit(event)}
       noValidate
@@ -1008,4 +1079,11 @@ function fieldId(labelText: string) {
     .toLowerCase()
     .replaceAll(/[^a-z0-9]+/g, '-')
     .replaceAll(/^-|-$/g, '')}`;
+}
+
+function fitRouteFromPath(pathname: string) {
+  const match = /^\/jobs\/([^/]+)\/snapshots\/([^/]+)\/fit$/.exec(pathname);
+  return match
+    ? { jobId: decodeURIComponent(match[1]!), snapshotId: decodeURIComponent(match[2]!) }
+    : undefined;
 }

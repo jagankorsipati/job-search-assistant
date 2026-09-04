@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App';
 import { ApiError, authApi } from './api/auth';
 import { applicationsApi, type JobApplication } from './api/applications';
 import { documentsApi, type BaseResumeMetadata } from './api/documents';
+import { fitApi, type FitAnalysis, type JobRequirement } from './api/fit';
 import { jobsApi, type CapturedJob, type JobDescriptionSnapshot } from './api/jobs';
 import { profileApi, type CandidateProfile, type CareerFact } from './api/profile';
 
@@ -70,6 +71,23 @@ vi.mock('./api/jobs', async (original) => {
     },
   };
 });
+vi.mock('./api/fit', async (original) => {
+  const actual = await original<typeof import('./api/fit')>();
+  return {
+    ...actual,
+    fitApi: {
+      listRequirements: vi.fn(),
+      createRequirement: vi.fn(),
+      updateRequirement: vi.fn(),
+      deleteRequirement: vi.fn(),
+      listEvidenceLinks: vi.fn(),
+      createEvidenceLink: vi.fn(),
+      updateEvidenceLink: vi.fn(),
+      deleteEvidenceLink: vi.fn(),
+      getAnalysis: vi.fn(),
+    },
+  };
+});
 vi.mock('./api/applications', async (original) => {
   const actual = await original<typeof import('./api/applications')>();
   return {
@@ -91,6 +109,7 @@ const profile = vi.mocked(profileApi);
 const documents = vi.mocked(documentsApi);
 const jobs = vi.mocked(jobsApi);
 const applications = vi.mocked(applicationsApi);
+const fit = vi.mocked(fitApi);
 
 const savedProfile: CandidateProfile = {
   id: 'profile-id',
@@ -216,6 +235,165 @@ const savedApplication: JobApplication = {
   version: 3,
   archivedAt: null,
   archived: false,
+};
+
+const draftRequirement: JobRequirement = {
+  id: 'requirement-draft',
+  jobId: 'job-id',
+  jobSnapshotId: 'snapshot-id',
+  category: 'SKILL',
+  importance: 'REQUIRED',
+  requirementText: 'Use TypeScript',
+  sourceExcerpt: 'TypeScript required',
+  status: 'DRAFT',
+  createdAt: '2026-08-20T00:00:00Z',
+  updatedAt: '2026-08-21T00:00:00Z',
+  version: 2,
+};
+
+const confirmedRequirement: JobRequirement = {
+  ...draftRequirement,
+  id: 'requirement-confirmed',
+  status: 'CONFIRMED',
+  requirementText: 'Build reliable systems',
+  sourceExcerpt: 'Build reliable systems.',
+  version: 5,
+};
+
+const rejectedRequirement: JobRequirement = {
+  ...draftRequirement,
+  id: 'requirement-rejected',
+  status: 'REJECTED',
+  requirementText: 'Own a flying car',
+  sourceExcerpt: null,
+  version: 1,
+};
+
+const scorableAnalysis: FitAnalysis = {
+  policyVersion: 'DETERMINISTIC_FIT_V1',
+  analysisStatus: 'SCORABLE',
+  jobId: 'job-id',
+  snapshotId: 'snapshot-id',
+  evidenceSupportScore: 50,
+  evidenceCoverageScore: 100,
+  confirmedRequirementCount: 1,
+  draftRequirementCount: 1,
+  rejectedRequirementCount: 1,
+  totalEligibleWeight: 2,
+  supportPoints: 1,
+  assessedWeight: 2,
+  importanceBreakdowns: [
+    {
+      importance: 'REQUIRED',
+      applicable: true,
+      confirmedRequirementCount: 1,
+      totalWeight: 2,
+      assessedCount: 1,
+      demonstratedCount: 0,
+      partiallyDemonstratedCount: 1,
+      notDemonstratedCount: 0,
+      contradictedCount: 0,
+      conflictingEvidenceCount: 0,
+      unassessedCount: 0,
+      evidenceSupportScore: 50,
+      evidenceCoverageScore: 100,
+    },
+    {
+      importance: 'PREFERRED',
+      applicable: false,
+      confirmedRequirementCount: 0,
+      totalWeight: 0,
+      assessedCount: 0,
+      demonstratedCount: 0,
+      partiallyDemonstratedCount: 0,
+      notDemonstratedCount: 0,
+      contradictedCount: 0,
+      conflictingEvidenceCount: 0,
+      unassessedCount: 0,
+      evidenceSupportScore: null,
+      evidenceCoverageScore: null,
+    },
+    {
+      importance: 'UNSPECIFIED',
+      applicable: false,
+      confirmedRequirementCount: 0,
+      totalWeight: 0,
+      assessedCount: 0,
+      demonstratedCount: 0,
+      partiallyDemonstratedCount: 0,
+      notDemonstratedCount: 0,
+      contradictedCount: 0,
+      conflictingEvidenceCount: 0,
+      unassessedCount: 0,
+      evidenceSupportScore: null,
+      evidenceCoverageScore: null,
+    },
+  ],
+  requirementAssessments: [
+    {
+      requirementId: 'requirement-confirmed',
+      requirementCategory: 'RESPONSIBILITY',
+      importance: 'REQUIRED',
+      requirementStatus: 'CONFIRMED',
+      requirementText: 'Build reliable systems',
+      sourceExcerpt: 'Build reliable systems.',
+      assessment: 'PARTIALLY_DEMONSTRATED',
+      reasonCode: 'PARTIAL_EVIDENCE',
+      requirementWeight: 2,
+      evidenceCredit: 0.5,
+      weightedContribution: 1,
+      evidenceRelationshipCounts: {
+        supportsCount: 0,
+        partiallySupportsCount: 1,
+        contradictsCount: 0,
+        notDemonstratedCount: 0,
+      },
+      evidenceLinks: [
+        {
+          evidenceLinkId: 'link-1',
+          evidenceType: 'CAREER_FACT',
+          evidenceId: 'fact-confirmed',
+          relationship: 'PARTIALLY_SUPPORTS',
+          userNote: 'Some relevant work.',
+          evidenceReference: 'CAREER_FACT',
+        },
+      ],
+    },
+  ],
+  gaps: [
+    {
+      findingType: 'PARTIAL_EVIDENCE',
+      requirementId: 'requirement-confirmed',
+      requirementCategory: 'RESPONSIBILITY',
+      importance: 'REQUIRED',
+      assessment: 'PARTIALLY_DEMONSTRATED',
+      reasonCode: 'PARTIAL_EVIDENCE',
+    },
+  ],
+  contradictions: [
+    {
+      findingType: 'CONFLICTING_EVIDENCE',
+      requirementId: 'requirement-confirmed',
+      requirementCategory: 'RESPONSIBILITY',
+      importance: 'REQUIRED',
+      assessment: 'CONFLICTING_EVIDENCE',
+      reasonCode: 'SUPPORTING_AND_CONTRADICTING_EVIDENCE',
+    },
+  ],
+};
+
+const nonScorableAnalysis: FitAnalysis = {
+  ...scorableAnalysis,
+  analysisStatus: 'NON_SCORABLE',
+  evidenceSupportScore: null,
+  evidenceCoverageScore: null,
+  confirmedRequirementCount: 0,
+  totalEligibleWeight: 0,
+  supportPoints: 0,
+  assessedWeight: 0,
+  requirementAssessments: [],
+  gaps: [],
+  contradictions: [],
 };
 
 describe('authentication experience', () => {
@@ -777,6 +955,65 @@ describe('job and application workspaces', () => {
       sequence: 2,
       descriptionText: 'New immutable text.',
     });
+    profile.getProfile.mockResolvedValue(savedProfile);
+    profile.listFacts.mockResolvedValue([confirmedFact]);
+    documents.getBaseResume.mockResolvedValue(savedResume);
+    fit.listRequirements.mockResolvedValue([
+      draftRequirement,
+      confirmedRequirement,
+      rejectedRequirement,
+    ]);
+    fit.listEvidenceLinks.mockImplementation((requirementId) =>
+      Promise.resolve(
+        requirementId === 'requirement-confirmed'
+          ? [
+              {
+                id: 'link-1',
+                jobRequirementId: 'requirement-confirmed',
+                evidenceType: 'CAREER_FACT',
+                evidenceId: 'fact-confirmed',
+                relationship: 'PARTIALLY_SUPPORTS',
+                userNote: 'Some relevant work.',
+                createdAt: '2026-08-21T00:00:00Z',
+                updatedAt: '2026-08-21T00:00:00Z',
+                version: 4,
+              },
+            ]
+          : [],
+      ),
+    );
+    fit.getAnalysis.mockResolvedValue(scorableAnalysis);
+    fit.createRequirement.mockResolvedValue({
+      ...draftRequirement,
+      id: 'requirement-created',
+      requirementText: 'Own production systems',
+      version: 0,
+    });
+    fit.updateRequirement.mockResolvedValue({ ...confirmedRequirement, version: 6 });
+    fit.deleteRequirement.mockResolvedValue(undefined);
+    fit.createEvidenceLink.mockResolvedValue({
+      id: 'link-created',
+      jobRequirementId: 'requirement-confirmed',
+      evidenceType: 'CAREER_FACT',
+      evidenceId: 'fact-confirmed',
+      relationship: 'SUPPORTS',
+      userNote: null,
+      createdAt: '2026-08-22T00:00:00Z',
+      updatedAt: '2026-08-22T00:00:00Z',
+      version: 0,
+    });
+    fit.updateEvidenceLink.mockResolvedValue({
+      id: 'link-1',
+      jobRequirementId: 'requirement-confirmed',
+      evidenceType: 'CAREER_FACT',
+      evidenceId: 'fact-confirmed',
+      relationship: 'CONTRADICTS',
+      userNote: 'Conflict',
+      createdAt: '2026-08-21T00:00:00Z',
+      updatedAt: '2026-08-22T00:00:00Z',
+      version: 5,
+    });
+    fit.deleteEvidenceLink.mockResolvedValue(undefined);
     applications.listApplications.mockImplementation((filters = {}) =>
       Promise.resolve(filters.archived ? [] : [savedApplication]),
     );
@@ -852,6 +1089,234 @@ describe('job and application workspaces', () => {
       expect(jobs.listJobs).toHaveBeenLastCalledWith({ archived: true, limit: 100 }),
     );
     expect(await screen.findByText(/no archived jobs/i)).toBeInTheDocument();
+  });
+
+  it('opens fit review for an exact snapshot and restores the nested route without private URL data', async () => {
+    window.history.replaceState(null, '', '/jobs/job-id/snapshots/snapshot-id/fit');
+    render(<App />);
+    expect(
+      await screen.findByRole('heading', { name: /review fit for this snapshot/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Acme')).toBeInTheDocument();
+    expect(screen.getByText('Platform Engineer')).toBeInTheDocument();
+    expect(screen.getByText(/snapshot 1 captured/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/requirements are interpretations of this exact snapshot/i),
+    ).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/jobs/job-id/snapshots/snapshot-id/fit');
+    expect(window.location.search).toBe('');
+    expect(window.location.hash).toBe('');
+    expect(window.location.href).not.toContain('Build%20reliable');
+    expect(localStorage.length).toBe(0);
+    expect(sessionStorage.length).toBe(0);
+  });
+
+  it('shows the fit action for snapshots and the no-snapshot empty state', async () => {
+    await openJobs();
+    expect(screen.getByRole('button', { name: /review fit/i })).toBeInTheDocument();
+    cleanup();
+    vi.clearAllMocks();
+    jobs.listJobs.mockImplementation((filters = {}) =>
+      Promise.resolve(filters.archived ? [] : [savedJob]),
+    );
+    jobs.getJob.mockResolvedValue(savedJob);
+    jobs.listSnapshots.mockResolvedValue([]);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /^jobs$/i }));
+    expect(
+      await screen.findByText(/add a job-description snapshot before reviewing fit/i),
+    ).toBeInTheDocument();
+  });
+
+  it('opens metadata editing in a named form with the selected company field', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /^edit metadata$/i }));
+    const metadataForm = screen.getByRole('form', { name: /^edit metadata$/i });
+    expect(within(metadataForm).getByLabelText(/company name/i)).toHaveValue('Acme');
+    fireEvent.click(within(metadataForm).getByRole('button', { name: /^cancel$/i }));
+    expect(screen.queryByRole('form', { name: /^edit metadata$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /^acme$/i })).toBeInTheDocument();
+  });
+
+  it('opens application note editing in a named form with private notes', async () => {
+    await openApplications();
+    fireEvent.click(screen.getByRole('button', { name: /edit notes and next action/i }));
+    const notesForm = screen.getByRole('form', { name: /notes and next action/i });
+    expect(within(notesForm).getByLabelText(/private notes/i)).toHaveValue('Use tailored resume.');
+    fireEvent.click(within(notesForm).getByRole('button', { name: /^cancel$/i }));
+    expect(screen.queryByRole('form', { name: /notes and next action/i })).not.toBeInTheDocument();
+  });
+
+  it('manually creates draft requirements, sends no ownership fields, and refreshes analysis after success', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    expect(await screen.findByRole('heading', { name: /requirements/i })).toBeInTheDocument();
+    expect(screen.getByText('Use TypeScript')).toBeInTheDocument();
+    expect(screen.getAllByText('Build reliable systems').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Own a flying car')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /add requirement/i }));
+    expect(screen.getByLabelText(/review status/i)).toHaveValue('DRAFT');
+    fireEvent.change(screen.getByLabelText(/requirement text/i), {
+      target: { value: 'Own production systems' },
+    });
+    fireEvent.change(screen.getAllByLabelText(/^importance$/i)[0]!, {
+      target: { value: 'REQUIRED' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /save requirement/i }));
+    await waitFor(() => expect(fit.createRequirement).toHaveBeenCalled());
+    expect(fit.createRequirement.mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({
+        requirementText: 'Own production systems',
+        status: 'DRAFT',
+        importance: 'REQUIRED',
+      }),
+    );
+    expect(fit.createRequirement.mock.calls[0]?.[2]).toEqual(
+      expect.not.objectContaining({
+        ownerAccountId: expect.anything(),
+        accountId: expect.anything(),
+      }),
+    );
+    expect(fit.getAnalysis.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('uses expectedVersion for edits and preserves unsaved requirement values on conflict', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    await screen.findByText('Use TypeScript');
+    fireEvent.click(screen.getAllByRole('button', { name: /^edit$/i })[0]!);
+    fireEvent.change(screen.getByLabelText(/requirement text/i), {
+      target: { value: 'Unsaved requirement text' },
+    });
+    fit.updateRequirement.mockRejectedValueOnce(new ApiError(409, 'stale_version'));
+    fireEvent.click(screen.getByRole('button', { name: /save requirement/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/changed elsewhere/i);
+    expect(screen.getByDisplayValue('Unsaved requirement text')).toBeInTheDocument();
+    expect(fit.updateRequirement).toHaveBeenCalledWith(
+      'requirement-draft',
+      expect.objectContaining({ expectedVersion: 2 }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /reload latest/i }));
+    await waitFor(() => expect(fit.listRequirements.mock.calls.length).toBeGreaterThanOrEqual(2));
+  });
+
+  it('confirms, rejects, returns to draft, and deletes only after deliberate confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    await screen.findByText('Use TypeScript');
+    fireEvent.click(screen.getAllByRole('button', { name: /^confirm$/i })[0]!);
+    await waitFor(() =>
+      expect(fit.updateRequirement).toHaveBeenCalledWith(
+        'requirement-draft',
+        expect.objectContaining({ status: 'CONFIRMED', expectedVersion: 2 }),
+      ),
+    );
+    await screen.findByText(/requirement confirmed/i);
+    fireEvent.click(screen.getAllByRole('button', { name: /^reject$/i })[0]!);
+    await screen.findByText(/requirement rejected/i);
+    fireEvent.click(screen.getAllByRole('button', { name: /return to draft/i })[0]!);
+    await screen.findByText(/requirement returned to draft/i);
+    fireEvent.click(screen.getAllByRole('button', { name: /^delete$/i })[0]!);
+    await waitFor(() => expect(fit.deleteRequirement).toHaveBeenCalled());
+    expect(window.confirm).toHaveBeenCalled();
+  });
+
+  it('links eligible evidence with no preselected relationship and preserves duplicate-link input', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    expect((await screen.findAllByText('Build reliable systems')).length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole('button', { name: /link evidence/i }));
+    expect(screen.getByText(/not demonstrated means/i)).toBeInTheDocument();
+    const relationshipRadios = screen.getAllByRole('radio');
+    relationshipRadios.forEach((radio) => expect(radio).not.toBeChecked());
+    fireEvent.change(screen.getByLabelText(/evidence source/i), {
+      target: { value: 'CAREER_FACT' },
+    });
+    expect(
+      screen.getAllByText(/skill: uses typescript professionally/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    fireEvent.change(screen.getByLabelText(/^evidence$/i), { target: { value: 'fact-confirmed' } });
+    fireEvent.click(relationshipRadios[0]!);
+    fireEvent.change(screen.getByLabelText(/user note/i), { target: { value: 'Selected note' } });
+    fit.createEvidenceLink.mockRejectedValueOnce(new ApiError(409, 'duplicate_evidence_link'));
+    fireEvent.click(screen.getByRole('button', { name: /save evidence link/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/conflicts/i);
+    expect(screen.getByDisplayValue('Selected note')).toBeInTheDocument();
+    expect(fit.createEvidenceLink).toHaveBeenCalledWith(
+      'requirement-confirmed',
+      expect.not.objectContaining({
+        ownerAccountId: expect.anything(),
+        accountId: expect.anything(),
+      }),
+    );
+  });
+
+  it('edits and removes evidence links with expectedVersion and confirmation', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    expect((await screen.findAllByText(/some relevant work/i)).length).toBeGreaterThanOrEqual(1);
+    fireEvent.click(screen.getByRole('button', { name: /edit link/i }));
+    fireEvent.click(screen.getAllByRole('radio')[2]!);
+    fireEvent.change(screen.getByLabelText(/user note/i), { target: { value: 'Conflict' } });
+    fireEvent.click(screen.getByRole('button', { name: /save evidence link/i }));
+    await waitFor(() =>
+      expect(fit.updateEvidenceLink).toHaveBeenCalledWith(
+        'link-1',
+        expect.objectContaining({ relationship: 'CONTRADICTS', expectedVersion: 4 }),
+      ),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /remove link/i }));
+    await waitFor(() => expect(fit.deleteEvidenceLink).toHaveBeenCalledWith('link-1', 4));
+  });
+
+  it('renders support and coverage separately, non-scorable state, findings, filters, and safe copy', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    expect(await screen.findByText(/evidence support: 50%/i)).toBeInTheDocument();
+    expect(screen.getByText(/review coverage: 100%/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/how much of the confirmed requirement weight is demonstrated/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /how much of the confirmed requirement weight has been explicitly reviewed/i,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(/no confirmed requirements/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/partially demonstrated/i).length).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/current evidence partially demonstrates/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(
+      screen.getAllByText(/both supporting and contradicting evidence are linked/i).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText(/hiring probability/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/fit score/i)).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/^assessment$/i), { target: { value: 'DEMONSTRATED' } });
+    expect(
+      await screen.findByText(/no confirmed requirement explanations match/i),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /clear filters/i }));
+    expect((await screen.findAllByText('Build reliable systems')).length).toBeGreaterThanOrEqual(1);
+
+    fit.getAnalysis.mockResolvedValueOnce(nonScorableAnalysis);
+    fireEvent.click(screen.getByRole('button', { name: /refresh analysis/i }));
+    expect(
+      await screen.findByText(/confirm at least one reviewed requirement/i),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/evidence support: 0%/i)).not.toBeInTheDocument();
+  });
+
+  it('keeps last analysis visible on failed refresh and explains oversized analysis safely', async () => {
+    await openJobs();
+    fireEvent.click(screen.getByRole('button', { name: /review fit/i }));
+    expect(await screen.findByText(/evidence support: 50%/i)).toBeInTheDocument();
+    fit.getAnalysis.mockRejectedValueOnce(new ApiError(409, 'analysis_too_large'));
+    fireEvent.click(screen.getByRole('button', { name: /refresh analysis/i }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/too many reviewed inputs/i);
+    expect(screen.getByText(/evidence support: 50%/i)).toBeInTheDocument();
   });
 
   it('filters loaded jobs by case-insensitive search, source, employment, and clears filters', async () => {

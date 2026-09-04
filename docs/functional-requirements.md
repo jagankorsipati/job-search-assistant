@@ -54,6 +54,10 @@
 - **FR-058:** Phase 5C exposes a read-only authenticated fit-analysis endpoint for exactly one owned job-description snapshot. It derives ownership from the session, returns safe not-found for foreign or mismatched job/snapshot identifiers, and provides no administrator bypass.
 - **FR-059:** Phase 5C responses include policy version, non-scorable status, distinct evidence-support and evidence-coverage scores, calculation inputs, per-importance breakdowns, per-confirmed-requirement explanations, minimal evidence-link summaries, neutral gap findings, contradiction findings, and no owner identifiers.
 - **FR-060:** Phase 5C analysis is computed fresh, not cached or persisted, uses no AI/inference/matching/scraping, uses no-store HTTP responses, and refuses oversized input sets rather than scoring truncated requirements or evidence links.
+- **FR-061:** Phase 5D exposes a Jobs-integrated frontend route for one exact immutable snapshot where owners manually create, edit, confirm, reject, return to draft, and delete requirements using explicit constrained controls and optimistic versions.
+- **FR-062:** Phase 5D lets owners link only eligible existing evidence through existing owner-scoped APIs, requires exactly one explicitly selected relationship, preserves duplicate/conflict form state, and never infers or preselects support.
+- **FR-063:** Phase 5D displays the server's evidence-support and review-coverage results separately, handles non-scorable snapshots without percentages, explains each confirmed requirement once, separates gaps, partial evidence, contradictions, and conflicts, and avoids hiring-probability or qualification claims.
+- **FR-064:** Phase 5D stores no fit workspace data, filters, URLs, requirements, evidence, or analysis results in browser storage, cookies, IndexedDB, query parameters, or fragments, and adds no Phase 5 browser E2E until Phase 5E.
 
 ## Documents
 

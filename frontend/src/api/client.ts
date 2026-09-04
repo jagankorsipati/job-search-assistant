@@ -46,6 +46,10 @@ export async function apiPut<T>(url: string, body?: unknown): Promise<T> {
   return apiWrite<T>('PUT', url, body);
 }
 
+export async function apiDelete<T>(url: string, body?: unknown): Promise<T> {
+  return apiWrite<T>('DELETE', url, body);
+}
+
 export async function apiPostForm<T>(url: string, body: FormData): Promise<T> {
   return apiWriteForm<T>('POST', url, body);
 }
@@ -64,7 +68,11 @@ export async function apiDownload(url: string): Promise<Response> {
   return response;
 }
 
-async function apiWrite<T>(method: 'POST' | 'PUT', url: string, body?: unknown): Promise<T> {
+async function apiWrite<T>(
+  method: 'POST' | 'PUT' | 'DELETE',
+  url: string,
+  body?: unknown,
+): Promise<T> {
   const token = await csrfToken();
   const response = await fetch(url, {
     method,

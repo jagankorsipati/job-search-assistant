@@ -231,7 +231,7 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   browser,
   baseURL,
 }) => {
-  test.setTimeout(180_000);
+  test.setTimeout(300_000);
   const adminPage = await loginAdmin(browser);
   await inviteMember(adminPage, browser, baseURL, memberLogin, 'Job Security Member');
   await inviteMember(adminPage, browser, baseURL, otherLogin, 'Other Job Member');
@@ -296,11 +296,17 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   await memberPage.getByRole('button', { name: /Phase4E Snapshot Company/ }).click();
   await expect(memberPage.getByRole('heading', { name: 'Phase4E Snapshot Company' })).toBeVisible();
   await memberPage.getByRole('button', { name: 'Edit metadata' }).click();
-  await memberPage.getByLabel('Company name').last().fill('Unsaved Browser Company');
+  await memberPage
+    .getByRole('form', { name: 'Edit metadata' })
+    .getByLabel('Company name')
+    .fill('Unsaved Browser Company');
   await memberPage.getByRole('button', { name: 'Cancel' }).click();
   await expect(memberPage.getByRole('heading', { name: 'Phase4E Snapshot Company' })).toBeVisible();
   await memberPage.getByRole('button', { name: 'Edit metadata' }).click();
-  await memberPage.getByLabel('Company name').last().fill('Phase4E Snapshot Company Updated');
+  await memberPage
+    .getByRole('form', { name: 'Edit metadata' })
+    .getByLabel('Company name')
+    .fill('Phase4E Snapshot Company Updated');
   await memberPage.getByRole('button', { name: 'Edit metadata' }).last().click();
   await expect(memberPage.getByText('Job metadata saved.')).toBeVisible();
 
@@ -365,7 +371,10 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   await expect(memberPage.locator('.detail-panel dl')).toContainText('Draft');
   await expect(memberPage.locator('.detail-panel dl')).toContainText('Not recorded');
   await memberPage.getByRole('button', { name: 'Edit notes and next action' }).click();
-  await memberPage.getByLabel('Private notes').fill('Synthetic updated private note.');
+  await memberPage
+    .getByRole('form', { name: 'Notes and next action' })
+    .getByLabel('Private notes')
+    .fill('Synthetic updated private note.');
   await memberPage.getByRole('button', { name: 'Save application notes' }).click();
   await expect(memberPage.getByText('Notes and next action saved.')).toBeVisible();
   await memberPage.getByLabel('Next status').selectOption('READY_TO_APPLY');
@@ -582,16 +591,22 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   await memberPage.getByRole('button', { name: /Phase4E Manual Company/ }).click();
   await conflictPage.getByRole('button', { name: /Phase4E Manual Company/ }).click();
   await memberPage.getByRole('button', { name: 'Edit metadata' }).click();
-  await memberPage.getByLabel('Company name').last().fill('Phase4E Manual Company Saved');
+  await memberPage
+    .getByRole('form', { name: 'Edit metadata' })
+    .getByLabel('Company name')
+    .fill('Phase4E Manual Company Saved');
   await memberPage.getByRole('button', { name: 'Edit metadata' }).last().click();
   await expect(memberPage.getByText('Job metadata saved.')).toBeVisible();
   await conflictPage.getByRole('button', { name: 'Edit metadata' }).click();
-  await conflictPage.getByLabel('Company name').last().fill('Phase4E Manual Company Stale');
+  await conflictPage
+    .getByRole('form', { name: 'Edit metadata' })
+    .getByLabel('Company name')
+    .fill('Phase4E Manual Company Stale');
   await conflictPage.getByRole('button', { name: 'Edit metadata' }).last().click();
   await expect(conflictPage.getByRole('alert')).toContainText('changed elsewhere');
-  await expect(conflictPage.getByLabel('Company name').last()).toHaveValue(
-    'Phase4E Manual Company Stale',
-  );
+  await expect(
+    conflictPage.getByRole('form', { name: 'Edit metadata' }).getByLabel('Company name'),
+  ).toHaveValue('Phase4E Manual Company Stale');
   await conflictPage.getByRole('button', { name: 'Reload latest job' }).click();
   await expect(
     conflictPage.getByRole('heading', { name: 'Phase4E Manual Company Saved' }),

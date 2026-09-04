@@ -1,4 +1,12 @@
-import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { ApiError } from '../../api/client';
 import {
   allowedTransitions,
@@ -46,6 +54,7 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [searchText, setSearchText] = useState('');
   const [dueFilter, setDueFilter] = useState<DueFilter>('');
+  const selectedLoadSequence = useRef(0);
 
   const jobById = useMemo(() => new Map(jobs.map((job) => [job.id, job])), [jobs]);
   const applicationJobIds = useMemo(
@@ -92,6 +101,7 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
   }, [archived, onExpired, statusFilter]);
 
   const loadSelected = useCallback(async () => {
+    const loadSequence = ++selectedLoadSequence.current;
     if (!selectedId) {
       setSelected(undefined);
       setHistory([]);
@@ -103,6 +113,7 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
         applicationsApi.getApplication(selectedId),
         applicationsApi.listHistory(selectedId, 100),
       ]);
+      if (loadSequence !== selectedLoadSequence.current) return;
       setSelected(application);
       setEditForm({
         privateNotes: application.privateNotes ?? '',
@@ -511,6 +522,7 @@ export function ApplicationsWorkspace({ onExpired }: { onExpired: () => void }) 
               )}
               {editing && (
                 <form
+                  aria-label="Notes and next action"
                   className="profile-form compact-form"
                   onSubmit={(event) => void saveMetadata(event)}
                   noValidate
