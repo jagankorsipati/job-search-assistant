@@ -49,7 +49,7 @@ Each milestone should be independently reviewable and committable.
 - Phase 5B complete: internal deterministic fit scoring policy over confirmed requirements and explicit evidence links, with support and coverage scores, per-importance breakdowns, structured gaps and contradictions, and no persistence or public analysis route
 - Phase 5C complete: authenticated read-only fit-analysis API for one owned immutable job-description snapshot, computed on demand with `DETERMINISTIC_FIT_V1`, no-store responses, structured explanations, bounded-analysis refusal, and no score persistence
 - Phase 5D complete: authenticated Jobs-integrated frontend workflow for exact-snapshot requirement review, explicit evidence linking, server-authoritative support and coverage presentation, neutral gaps and contradictions, optimistic-conflict recovery, accessibility coverage, and no browser persistence
-- Phase 5E: real-browser fit-analysis verification
+- Phase 5E in progress: real-browser fit-analysis workflow, isolation, conflict, CSRF/session, privacy, diagnostics, ordering, and release-readiness verification
 
 ## Phase 6 — Truthful document tailoring
 

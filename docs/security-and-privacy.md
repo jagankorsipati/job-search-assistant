@@ -123,6 +123,10 @@ Phase 5C exposes that result through `GET /api/jobs/{jobId}/snapshots/{snapshotI
 
 Phase 5D presents fit review inside the authenticated Jobs workspace at `/jobs/{jobId}/snapshots/{snapshotId}/fit`. The route stores only job and snapshot identifiers; requirement text, source excerpts, evidence notes, profile values, career-fact text, resume metadata, filters, and analysis payloads remain in React memory only. The frontend loads eligible evidence from existing owner-scoped APIs, sends no owner/account override fields, requires explicit evidence relationship selection, and never preselects or infers support. It displays evidence support and review coverage as separate server values, shows non-scorable results without percentages, and uses neutral wording for gaps, partial evidence, contradictions, and conflicts. Optimistic conflicts preserve unsaved form values until the owner chooses to reload latest data.
 
+Phase 5E verifies the fit workflow with real browser sessions and direct authenticated API calls. The browser specification creates only runtime synthetic accounts and data, proves ADMIN has no private fit-data bypass, checks safe 404 shapes for foreign and nonexistent resources, verifies CSRF rejection for unsafe requirement and evidence-link mutations, verifies fit-analysis GET authentication and no-store posture, and asserts no fit data is written to browser storage, URLs, client-readable cookies, IndexedDB names, or outbound third-party requests. The verification also caught and fixed a frontend contract bug where the backend's `NO_CONFIRMED_REQUIREMENTS` status was not treated as non-scorable by the UI.
+
+Phase 5 verification evidence is recorded in the [Phase 5 verification matrix](security/phase-5-verification.md). Phase 5 does not decide whether a candidate is qualified, predict hiring outcomes, independently verify qualifications, or recommend whether to apply.
+
 ## Network posture
 
 V1 binds to the private network only. Remote access uses Tailscale or an equivalent private overlay. Direct router port forwarding is prohibited by the deployment guide.

@@ -335,7 +335,7 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   await memberPage.getByRole('button', { name: 'Active jobs' }).click();
   await memberPage.getByLabel('Search loaded jobs').fill('url verification');
   await expect(memberPage.getByText(/Showing 1 of/)).toBeVisible();
-  await memberPage.getByLabel('Source').selectOption('PASTED_DESCRIPTION');
+  await memberPage.locator('.filter-bar select').first().selectOption('PASTED_DESCRIPTION');
   await expect(memberPage.getByText('No loaded jobs match these filters.')).toBeVisible();
   await memberPage.getByRole('button', { name: 'Clear filters' }).click();
   await memberPage.getByRole('button', { name: 'Capture job' }).click();

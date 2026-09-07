@@ -91,7 +91,7 @@ foreach ($check in $frontendChecks) {
 
 if ($dockerAvailable) {
     Invoke-CheckedCommand `
-        -Label 'Full-stack browser identity, profile, base resume, job, and application verification' `
+        -Label 'Full-stack browser identity, profile, base resume, job, application, and fit-analysis verification' `
         -WorkingDirectory $repositoryRoot `
         -Executable 'powershell.exe' `
         -CommandArguments @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'run-browser-e2e.ps1'))

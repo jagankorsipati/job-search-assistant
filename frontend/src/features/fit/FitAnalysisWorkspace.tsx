@@ -576,6 +576,7 @@ function RequirementEditor({
 }) {
   return (
     <form
+      aria-label={title}
       className="profile-form compact-form"
       onSubmit={(event) => void onSubmit(event)}
       noValidate
@@ -844,6 +845,7 @@ function EvidenceLinkEditor(props: {
   );
   return (
     <form
+      aria-label={props.editingLinkId ? 'Edit evidence relationship' : 'Link eligible evidence'}
       className="profile-form compact-form"
       onSubmit={(event) => void props.onSaveEvidence(event)}
     >
@@ -950,7 +952,7 @@ function EvidenceLinkEditor(props: {
 }
 
 function FitScoreSummary({ analysis }: { analysis: FitAnalysis }) {
-  if (analysis.analysisStatus === 'NON_SCORABLE') {
+  if (analysis.analysisStatus !== 'SCORABLE') {
     return (
       <div className="fit-summary">
         <p>Confirm at least one reviewed requirement to calculate evidence support and coverage.</p>

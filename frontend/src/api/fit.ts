@@ -144,7 +144,7 @@ export interface FitFinding {
 
 export interface FitAnalysis {
   policyVersion: string;
-  analysisStatus: 'SCORABLE' | 'NON_SCORABLE';
+  analysisStatus: 'SCORABLE' | 'NO_CONFIRMED_REQUIREMENTS';
   jobId: string;
   snapshotId: string;
   evidenceSupportScore?: number | null;

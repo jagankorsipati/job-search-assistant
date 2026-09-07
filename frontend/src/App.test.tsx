@@ -384,7 +384,7 @@ const scorableAnalysis: FitAnalysis = {
 
 const nonScorableAnalysis: FitAnalysis = {
   ...scorableAnalysis,
-  analysisStatus: 'NON_SCORABLE',
+  analysisStatus: 'NO_CONFIRMED_REQUIREMENTS',
   evidenceSupportScore: null,
   evidenceCoverageScore: null,
   confirmedRequirementCount: 0,

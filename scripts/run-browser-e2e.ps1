@@ -108,7 +108,7 @@ function Write-SafeDiagnostics {
     if (Test-Path -LiteralPath $rawPlaywrightRoot) {
         $safePlaywrightLines = Get-ChildItem -LiteralPath $rawPlaywrightRoot -Recurse -File -Filter 'error-context.md' |
             ForEach-Object { Get-Content -LiteralPath $_.FullName } |
-            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security|job-application-security)\.spec\.ts)' } |
+            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security|job-application-security|fit-analysis-security)\.spec\.ts)' } |
             ForEach-Object {
                 $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
                    -replace '(?i)\b[\w .-]+\.(pdf|docx)\b', '[REDACTED-FILENAME]' `
@@ -130,9 +130,14 @@ function Write-SafeDiagnostics {
     Add-DiagnosticSection 'normal backend stderr' @(Get-SafeLogTail $backendError)
     Add-DiagnosticSection 'vite stdout' @(Get-SafeLogTail $frontendOutput)
     Add-DiagnosticSection 'vite stderr' @(Get-SafeLogTail $frontendError)
-    $containerState = & docker inspect --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' `
-        "$projectName-postgres-e2e-1" 2>$null
-    if ($LASTEXITCODE -ne 0) { $containerState = 'container unavailable' }
+    try {
+        $containerState = & docker inspect --format 'status={{.State.Status}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' `
+            "$projectName-postgres-e2e-1" 2>$null
+        if ($LASTEXITCODE -ne 0) { $containerState = 'container unavailable' }
+    }
+    catch {
+        $containerState = 'container unavailable'
+    }
     Add-DiagnosticSection 'postgres' @($containerState, "active_admin_count=$(Get-AdministratorCount)")
     Add-DiagnosticSection 'playwright context' $(if ($safePlaywrightLines) { @($safePlaywrightLines) } else { @('[no safe context lines]') })
     Get-Content -LiteralPath $diagnosticPath
@@ -204,7 +209,7 @@ try {
         -WorkingDirectory $frontendRoot -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
-    Write-Host 'Running Playwright identity, profile, base resume, job, and application security journeys.' -ForegroundColor Cyan
+    Write-Host 'Running Playwright identity, profile, base resume, job, application, and fit-analysis security journeys.' -ForegroundColor Cyan
     Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
     $succeeded = $true
 }
@@ -234,4 +239,4 @@ finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'Browser identity, profile, base resume, job, and application E2E verification passed.' -ForegroundColor Green
+Write-Host 'Browser identity, profile, base resume, job, application, and fit-analysis E2E verification passed.' -ForegroundColor Green

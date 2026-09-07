@@ -58,6 +58,8 @@
 - **FR-062:** Phase 5D lets owners link only eligible existing evidence through existing owner-scoped APIs, requires exactly one explicitly selected relationship, preserves duplicate/conflict form state, and never infers or preselects support.
 - **FR-063:** Phase 5D displays the server's evidence-support and review-coverage results separately, handles non-scorable snapshots without percentages, explains each confirmed requirement once, separates gaps, partial evidence, contradictions, and conflicts, and avoids hiring-probability or qualification claims.
 - **FR-064:** Phase 5D stores no fit workspace data, filters, URLs, requirements, evidence, or analysis results in browser storage, cookies, IndexedDB, query parameters, or fragments, and adds no Phase 5 browser E2E until Phase 5E.
+- **FR-065:** Phase 5E real-browser verification proves the fit-review lifecycle, requirement and evidence-link lifecycle, deterministic scoring examples, truthfulness copy, cross-user and ADMIN isolation, optimistic conflicts, CSRF/session behavior, browser privacy, network boundaries, accessibility, responsive behavior, ordering independence, safe diagnostics, and cleanup against the disposable PostgreSQL-backed full stack.
+- **FR-066:** Phase 5E release readiness does not add product features, persisted fit scores, new migrations, AI, automatic extraction, automatic evidence matching, rankings, recommendations, hiring predictions, resume tailoring, generated content, URL fetching, scraping, application submission, notifications, telemetry, test-only production endpoints, permissive CORS, or weakened authentication controls.
 
 ## Documents
 

@@ -698,6 +698,14 @@ button:focus-visible {
   align-items: start;
 }
 
+.fit-grid > *,
+.fit-workspace section,
+.requirement-groups,
+.assessment-list,
+.findings-grid {
+  min-width: 0;
+}
+
 .snapshot-context pre {
   max-height: 18rem;
   overflow: auto;
@@ -790,6 +798,8 @@ blockquote {
 }
 
 .table-wrap {
+  width: 100%;
+  min-width: 0;
   max-width: 100%;
   margin: 1.25rem 0;
   overflow-x: auto;

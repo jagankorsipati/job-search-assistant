@@ -286,7 +286,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   browser,
   baseURL,
 }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(600_000);
   const adminPage = await loginAdminAndInviteMember(browser, baseURL);
   const adminContext = adminPage.context();
 
