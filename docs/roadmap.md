@@ -53,7 +53,7 @@ Each milestone should be independently reviewable and committable.
 
 ## Phase 6 — Truthful document tailoring
 
-- Proposal and evidence model
+- Phase 6A complete: owner-scoped backend draft proposal foundation for manually proposed résumé changes, exact source résumé version/checksum attribution, explicit confirmed career-fact evidence links or missing-evidence state, optimistic locking, bounded reads, and no approval/export/public API/AI/document editing
 - Before/after review and approval
 - DOCX fidelity spike, export, and regression tests
 

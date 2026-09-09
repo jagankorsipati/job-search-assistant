@@ -6,7 +6,7 @@
 | ---------------------------- | ------------------------------------ | --------------------- |
 | Account and session          | Identity module                      | Individual user       |
 | Career fact and verification | Profile module                       | Individual user       |
-| Base résumé and exports      | Documents module                     | Individual user       |
+| Base résumé, tailoring proposals, and exports | Documents module                     | Individual user       |
 | Captured job snapshot        | Jobs module                          | Individual user       |
 | Job requirement and evidence link | Fit module, owner-reviewed interpretation and relationship | Individual user       |
 | Fit result                   | Fit module, derived and reproducible | Individual user       |
@@ -30,6 +30,7 @@
 - Base resume metadata and stored files are owned by exactly one account. Upload derives ownership from `CurrentActorProvider`, uses a server-generated opaque storage key, and never trusts browser-supplied owner IDs, filenames as paths, storage keys, or filesystem paths.
 - Captured jobs, job-description snapshots, job applications, and application status history are owned by exactly one account. Child rows use owner-aware parent references so snapshots, applications, and history cannot be attached across owners. Capturing a job, storing a URL reference, or downloading a resume never proves or changes application status.
 - Job requirements and requirement-evidence links are owned by exactly one account. Requirements use owner-aware job and snapshot references so a reviewed interpretation remains attached to the exact immutable snapshot it came from. Evidence links are explicit user assertions and can reference only owner-visible supported evidence after transactional validation.
+- Résumé tailoring proposals are owned by exactly one account. Drafts pin the exact current base résumé document ID, version, and checksum at creation and do not follow later replacement. Proposal evidence links can reference only current owner-confirmed career facts after transactional validation; absent evidence is stored as an explicit missing-evidence state.
 
 ## Owner-scoped persistence contract
 
@@ -46,6 +47,7 @@
 - Base resume responses do not return `owner_account_id`, checksums, storage keys, or filesystem paths. Download is owner-scoped and attachment-only.
 - Job and application APIs derive `owner_account_id` from `CurrentActorProvider`, never accept trusted browser owner IDs, and use `WHERE id = ? AND owner_account_id = ?` for individual reads and mutations. Collections filter by owner. Cross-user and nonexistent job/application resources remain indistinguishable.
 - Fit APIs derive `owner_account_id` from `CurrentActorProvider`, never accept trusted browser owner IDs, and use owner predicates for requirements, evidence links, snapshots, and candidate evidence validation. Cross-user and nonexistent requirements, links, snapshots, and evidence targets remain indistinguishable.
+- Documents tailoring services derive `owner_account_id` from `CurrentActorProvider`, never accept trusted browser owner IDs, and use owner predicates for proposals, source base resumes, and candidate evidence validation. Cross-user and nonexistent proposals, resumes, and evidence targets remain indistinguishable.
 - The frontend profile workspace displays only the authenticated user's profile and career facts. It never accepts or submits owner identifiers, and administrator accounts use the same owner-scoped profile route for their own data only.
 - Profile and career-fact data is held in React memory for the current page lifetime only. It is not written to browser storage, URL query parameters, URL fragments, IndexedDB, or client-readable cookies.
 
@@ -82,3 +84,5 @@ Phase 5C adds a read-only owner-scoped analysis API over the same derived result
 Phase 5D adds a frontend fit-review workspace under the Jobs route. It consumes only the existing owner-scoped job, snapshot, profile, confirmed career-fact, base-resume metadata, requirement, evidence-link, and fit-analysis APIs. The browser sends no owner/account fields and stores no job, requirement, evidence, analysis, or filter data in localStorage, sessionStorage, IndexedDB, cookies, query parameters, or fragments. The route carries only job and snapshot identifiers, while mutable review state remains in React memory until the server accepts or rejects a deliberate user action. The browser never recalculates support or coverage locally.
 
 Phase 5E adds real-browser and direct authenticated API verification for those ownership rules. The new fit-analysis browser spec creates independent runtime owners, proves owner collections and analysis remain isolated, proves ADMIN cannot read or mutate another owner's fit records, rejects browser-supplied owner/account transfer attempts, and verifies foreign evidence IDs cannot be linked to the current owner's requirements. It adds no new ownership mechanism or persisted derived score.
+
+Phase 6A adds internal owner-scoped draft résumé tailoring proposals. Proposal drafts record user-authored original/proposed text, a bounded target reference, exact source résumé metadata, explicit missing evidence or linked career facts, timestamps, and an optimistic version. Future approval eligibility validates current source résumé and evidence state; it is invalidated by source replacement and by deleted, archived, draft, or cross-owner evidence. No Phase 6A public controller, approval, export readiness, document mutation, or fit-link reuse exists.

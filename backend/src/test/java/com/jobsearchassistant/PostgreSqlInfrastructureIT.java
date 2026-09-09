@@ -53,7 +53,7 @@ class PostgreSqlInfrastructureIT {
         assertThat(Arrays.stream(flyway.info().applied())
                 .filter(migration -> migration.getState() == MigrationState.SUCCESS && migration.getVersion() != null)
                 .map(migration -> migration.getVersion().getVersion()))
-                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
+                .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11");
     }
 
     @Test
@@ -77,6 +77,7 @@ class PostgreSqlInfrastructureIT {
                 "application_status_history", "authentication_security_event", "base_resume_document", "candidate_profile",
                 "captured_job", "career_fact", "household_invitation", "job_application",
                 "job_description_snapshot", "job_requirement", "job_requirement_evidence_link",
+                "resume_tailoring_proposal", "resume_tailoring_proposal_evidence",
                 "spring_session", "spring_session_attributes", "user_account");
         assertThat(constraints).contains(
                 "uq_user_account_normalized_login_name",

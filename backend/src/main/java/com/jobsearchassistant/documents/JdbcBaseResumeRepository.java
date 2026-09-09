@@ -81,7 +81,7 @@ class JdbcBaseResumeRepository implements BaseResumeRepository {
         return updated == 1;
     }
 
-    private static BaseResumeDocument map(ResultSet rs, int rowNum) throws SQLException {
+    static BaseResumeDocument map(ResultSet rs, int rowNum) throws SQLException {
         return new BaseResumeDocument(
                 rs.getObject("id", UUID.class),
                 rs.getObject("owner_account_id", UUID.class),

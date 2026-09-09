@@ -19,3 +19,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-013](ADR-013-owner-scoped-job-and-application-foundation.md) | Establish owner-scoped job and application tracking foundation | Accepted |
 | [ADR-014](ADR-014-job-requirement-and-evidence-foundation.md) | Establish job requirement and candidate evidence foundations | Accepted |
 | [ADR-015](ADR-015-deterministic-fit-scoring-policy.md) | Use deterministic fit scoring policy | Accepted |
+| [ADR-016](ADR-016-truthful-resume-tailoring-proposal-foundation.md) | Establish truthful resume tailoring proposal foundation | Accepted |

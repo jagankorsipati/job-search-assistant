@@ -68,6 +68,9 @@
 - **FR-040:** Exports record their source resume, job, approved changes, and creation time.
 - **FR-041:** Users can generate and edit grounded cover-letter drafts.
 - **FR-042:** The system preserves the original resume.
+- **FR-067:** Phase 6A stores owner-scoped manually authored résumé tailoring proposal drafts with exact source base résumé document ID, optimistic version, checksum, bounded target reference, proposed text, optional user-supplied original text, timestamps, and optimistic proposal version.
+- **FR-068:** Phase 6A proposal evidence links reference only current owner-confirmed career facts, record user-confirmed support rather than proof of wording equivalence, and represent missing evidence explicitly without inferring facts from job requirements or fit links.
+- **FR-069:** Phase 6A supports internal draft create, edit, list, read, and remove operations with owner scope, safe foreign/nonexistent failures, expected-version conflicts, bounded reads, source attribution preservation, and no public controllers, approval, export readiness, AI drafting, resume parsing, document editing, or frontend workflow.
 
 ## Applications
 

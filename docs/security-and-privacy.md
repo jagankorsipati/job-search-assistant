@@ -31,6 +31,7 @@ Résumés, contact details, work history, education, notes, job activity, creden
 - Background operations require explicit owner or reviewed system authority.
 - Candidate profiles and career facts carry immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's profile or career facts.
 - Base résumé metadata carries immutable owner UUIDs and must use owner-scoped SQL. Administrators have no bypass into another member's document metadata or download.
+- Résumé tailoring proposals and proposal-evidence links carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database references prevent cross-owner source résumé or career-fact evidence attachment. Administrators have no bypass into another member's proposal drafts.
 - Captured jobs, job-description snapshots, job applications, and application status history carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database foreign keys prevent cross-owner snapshots, applications, and history rows. Administrators have no bypass into another member's jobs or applications.
 - Job requirements and requirement-evidence links carry immutable owner UUIDs and must use owner-scoped SQL. Owner-aware database foreign keys prevent cross-owner job/snapshot attachment, and transactional service validation prevents cross-owner polymorphic evidence references. Administrators have no bypass into another member's fit foundation records.
 - `/api/profile/**` endpoints require authentication. POST and PUT lifecycle operations require CSRF through the existing browser-session protection.
@@ -178,6 +179,12 @@ Phase 3 candidate-profile verification evidence is recorded in the [Phase 3 veri
 - Account-recovery proof
 - Backup encryption mechanism
 - Multi-instance/shared authentication rate limiting if deployment topology changes
+
+## Resume tailoring draft controls
+
+Phase 6A stores manually authored proposal drafts only. Proposal text, optional original text, and evidence notes are sensitive document data and must not be logged, copied into audit events, or exposed through public controllers. Draft creation pins the exact current base résumé row ID, optimistic version, and checksum; later replacement makes the draft ineligible for future approval instead of silently retargeting it.
+
+Proposal evidence links are owner-confirmed support references to current confirmed career facts. Missing evidence is explicit, archived/draft/deleted/foreign facts are not eligible, and current eligibility is rechecked when future approval readiness is evaluated. Fit-analysis links and job requirements are never treated as automatic evidence for proposed résumé wording.
 
 ## Audit-retention operations
 

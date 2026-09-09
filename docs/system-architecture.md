@@ -21,7 +21,7 @@ flowchart TD
 | Profile | Verified candidate facts and provenance |
 | Jobs | Job capture, metadata, normalization, duplicates |
 | Fit | Snapshot-attributed requirements, explicit evidence relationships, deterministic scoring API, gaps, and explanations |
-| Documents | Templates, proposals, approvals, DOCX exports |
+| Documents | Base résumé storage, truthful tailoring proposals, approvals, DOCX exports |
 | Applications | Pipeline state, notes, follow-ups, history |
 | Integrations | AI and future job-source adapters |
 | Operations | Health, retention, export, deletion, audit events |
@@ -48,3 +48,4 @@ flowchart TD
 - Files are never served by arbitrary filesystem paths.
 - No module may convert an unverified claim into a verified fact.
 - Fit requirements are interpretations of job snapshots; evidence links are owner assertions about existing evidence. Derived scores and explanations must not mutate source requirements or candidate evidence. Phase 5C exposes them through a read-only no-store API for one owned snapshot at a time and refuses oversized inputs rather than scoring truncated data. Phase 5D presents that API in the React Jobs workspace with manual requirement review, explicit evidence relationship selection, no browser persistence, no local score calculation, and no automatic matching. Phase 5E verifies that boundary with real browser sessions, direct authenticated API calls, sanitized diagnostics, and disposable PostgreSQL-backed execution; it adds no new runtime architecture.
+- Phase 6A adds only an internal Documents service boundary for draft résumé tailoring proposals. Drafts pin the current base résumé row ID, optimistic version, and checksum because replacement mutates the current metadata row rather than creating immutable historical rows. Draft evidence links reference current owner-confirmed career facts only; they record user-confirmed support and do not prove wording equivalence, approve content, edit documents, export files, or reuse fit `SUPPORTS` links automatically.
