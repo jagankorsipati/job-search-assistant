@@ -38,3 +38,5 @@ Phase 6A stores only proposal drafts. A draft may explicitly have missing eviden
 ## AI behavior
 
 AI may propose wording and identify possible matches. Deterministic validation decides whether every claim is backed by eligible evidence. Missing requirements are reported separately as gaps.
+
+Phase 6B records explicit owner approval attestation for one reviewed proposal revision. The review revision binds the proposal version, source resume ID/version/checksum, and supporting confirmed fact IDs/versions. Approval does not independently verify original text, does not prove every proposed claim from linked facts, and does not authorize export or application submission. Editing wording or evidence returns the proposal to draft, while source resume replacement or fact version/status changes make any historical approval stale on later evaluation.

@@ -54,7 +54,7 @@ Each milestone should be independently reviewable and committable.
 ## Phase 6 — Truthful document tailoring
 
 - Phase 6A complete: owner-scoped backend draft proposal foundation for manually proposed résumé changes, exact source résumé version/checksum attribution, explicit confirmed career-fact evidence links or missing-evidence state, optimistic locking, bounded reads, and no approval/export/public API/AI/document editing
-- Before/after review and approval
+- Phase 6B complete: authenticated no-store backend APIs for owner-scoped tailoring proposal CRUD, read-only before/after review tokens, explicit owner approval attestation, rejection, append-only decision history, transactional source/evidence revalidation, stale-approval detection, and no export/document editing/AI/frontend
 - DOCX fidelity spike, export, and regression tests
 
 ## Phase 7 — Optional AI assistance

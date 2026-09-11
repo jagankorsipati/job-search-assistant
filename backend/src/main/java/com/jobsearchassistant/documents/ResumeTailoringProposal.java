@@ -16,6 +16,7 @@ record ResumeTailoringProposal(
         String originalText,
         String proposedText,
         ResumeTailoringEvidenceState evidenceState,
+        ResumeTailoringLifecycleStatus lifecycleStatus,
         List<ResumeTailoringProposalEvidence> evidence,
         Instant createdAt,
         Instant updatedAt,
@@ -36,6 +37,7 @@ record ResumeTailoringProposal(
         originalText = optionalText(originalText, ResumeTailoringService.TEXT_MAX, "originalText");
         proposedText = requireText(proposedText, ResumeTailoringService.TEXT_MAX, "proposedText");
         Objects.requireNonNull(evidenceState, "evidenceState");
+        Objects.requireNonNull(lifecycleStatus, "lifecycleStatus");
         evidence = List.copyOf(evidence == null ? List.of() : evidence);
         Objects.requireNonNull(createdAt, "createdAt");
         Objects.requireNonNull(updatedAt, "updatedAt");

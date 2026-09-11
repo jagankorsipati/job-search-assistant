@@ -3,11 +3,17 @@ package com.jobsearchassistant.documents;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.jobsearchassistant.identity.api.ActorRole;
 import com.jobsearchassistant.identity.api.AuthenticatedActor;
+import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +44,7 @@ class ResumeTailoringServiceIT {
 
     @Autowired JdbcResumeTailoringRepository repository;
     @Autowired JdbcTemplate jdbc;
+    @Autowired DataSource dataSource;
 
     private UUID memberId;
     private UUID otherId;
@@ -52,6 +59,8 @@ class ResumeTailoringServiceIT {
 
     @BeforeEach
     void setUp() {
+        jdbc.update("DELETE FROM job_search_assistant.resume_tailoring_proposal_decision_evidence");
+        jdbc.update("DELETE FROM job_search_assistant.resume_tailoring_proposal_decision");
         jdbc.update("DELETE FROM job_search_assistant.resume_tailoring_proposal_evidence");
         jdbc.update("DELETE FROM job_search_assistant.resume_tailoring_proposal");
         jdbc.update("DELETE FROM job_search_assistant.job_requirement_evidence_link");
@@ -176,6 +185,50 @@ class ResumeTailoringServiceIT {
     }
 
     @Test
+    void approvalRejectsFactVersionRaceAfterWaitingForCurrentFactLock() throws Exception {
+        ResumeTailoringProposal created = memberService.createDraft(resumeId, 0, DIGEST,
+                input(List.of(new ResumeTailoringEvidenceInput(confirmedFactId, null))));
+        String reviewedRevision = memberService.review(created.id()).reviewToken();
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (var lock = connection.prepareStatement("""
+                    SELECT id
+                    FROM job_search_assistant.career_fact
+                    WHERE owner_account_id = ? AND id = ?
+                    FOR UPDATE
+                    """)) {
+                lock.setObject(1, memberId);
+                lock.setObject(2, confirmedFactId);
+                lock.executeQuery().close();
+            }
+
+            Future<?> approval = executor.submit(() -> memberService.approve(created.id(), 0, reviewedRevision, true));
+            Thread.sleep(200);
+            assertThat(approval.isDone()).isFalse();
+
+            try (var update = connection.prepareStatement("""
+                    UPDATE job_search_assistant.career_fact
+                    SET version = version + 1
+                    WHERE owner_account_id = ? AND id = ? AND status = 'CONFIRMED'
+                    """)) {
+                update.setObject(1, memberId);
+                update.setObject(2, confirmedFactId);
+                update.executeUpdate();
+            }
+            connection.commit();
+
+            assertThatThrownBy(() -> approval.get(5, TimeUnit.SECONDS))
+                    .hasCauseInstanceOf(ResumeTailoringConflictException.class)
+                    .hasRootCauseMessage("stale_review");
+            assertThat(decisionCount()).isZero();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
     void boundedReadsRejectOverflowInsteadOfTruncating() {
         for (int i = 0; i <= ResumeTailoringService.MAX_PROPOSAL_LIMIT; i++) {
             UUID id = UUID.randomUUID();
@@ -270,6 +323,12 @@ class ResumeTailoringServiceIT {
     private int evidenceCount() {
         return jdbc.queryForObject(
                 "SELECT count(*) FROM job_search_assistant.resume_tailoring_proposal_evidence",
+                Integer.class);
+    }
+
+    private int decisionCount() {
+        return jdbc.queryForObject(
+                "SELECT count(*) FROM job_search_assistant.resume_tailoring_proposal_decision",
                 Integer.class);
     }
 }

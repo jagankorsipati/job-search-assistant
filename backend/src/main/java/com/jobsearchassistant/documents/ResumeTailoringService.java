@@ -5,8 +5,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
+import java.util.HexFormat;
 
 import com.jobsearchassistant.identity.api.CurrentActorProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,7 +76,8 @@ class ResumeTailoringService {
         List<ResumeTailoringProposalEvidence> evidence = evidence(owner, proposalId, clean.evidence(), now);
         ResumeTailoringProposal proposal = new ResumeTailoringProposal(proposalId, owner, source.id(),
                 source.version(), source.sha256Checksum(), clean.targetSection(), clean.targetReference(),
-                clean.originalText(), clean.proposedText(), evidenceState(evidence), evidence, now, now, 0);
+                clean.originalText(), clean.proposedText(), evidenceState(evidence),
+                ResumeTailoringLifecycleStatus.DRAFT, evidence, now, now, 0);
         try {
             repository.insertProposal(proposal);
             evidence.forEach(repository::insertEvidence);
@@ -93,7 +99,8 @@ class ResumeTailoringService {
         ResumeTailoringProposal updated = new ResumeTailoringProposal(existing.id(), existing.ownerAccountId(),
                 existing.sourceResumeDocumentId(), existing.sourceResumeVersion(), existing.sourceResumeSha256Checksum(),
                 clean.targetSection(), clean.targetReference(), clean.originalText(), clean.proposedText(),
-                evidenceState(evidence), evidence, existing.createdAt(), now, existing.version() + 1);
+                evidenceState(evidence), ResumeTailoringLifecycleStatus.DRAFT, evidence, existing.createdAt(), now,
+                existing.version() + 1);
         if (!repository.updateProposal(updated, expectedVersion)) {
             throw new ResumeTailoringConflictException("stale_version");
         }
@@ -110,9 +117,73 @@ class ResumeTailoringService {
         requireVersion(expectedVersion);
         UUID owner = owner();
         repository.findProposal(owner, proposalId).orElseThrow(ResumeTailoringNotFoundException::new);
+        if (repository.hasDecisions(owner, proposalId)) {
+            throw new ResumeTailoringConflictException("decision_history_exists");
+        }
         if (!repository.deleteProposal(owner, proposalId, expectedVersion)) {
             throw new ResumeTailoringConflictException("stale_version");
         }
+    }
+
+    @Transactional(readOnly = true)
+    ResumeTailoringReview review(UUID proposalId) {
+        UUID owner = owner();
+        ResumeTailoringProposal proposal = repository.findProposal(owner, proposalId)
+                .orElseThrow(ResumeTailoringNotFoundException::new);
+        ensureEvidenceBound(owner, proposal.id());
+        ResumeTailoringApprovalEligibility eligibility = approvalEligibility(owner, proposal, false);
+        List<ResumeTailoringFactReference> references = availableFactReferences(owner, proposal, false);
+        return new ResumeTailoringReview(proposal, eligibility, reviewToken(proposal, references), references);
+    }
+
+    @Transactional
+    ResumeTailoringDecision approve(UUID proposalId, long expectedVersion, String reviewedRevision,
+            boolean attestedExperienceAccurate) {
+        requireVersion(expectedVersion);
+        if (!attestedExperienceAccurate) {
+            throw new ResumeTailoringConflictException("attestation_required");
+        }
+        UUID owner = owner();
+        ResumeTailoringProposal proposal = lockedProposal(owner, proposalId, expectedVersion);
+        ResumeTailoringApprovalEligibility eligibility = approvalEligibility(owner, proposal, true);
+        if (!eligibility.eligible()) {
+            throw new ResumeTailoringConflictException("approval_ineligible");
+        }
+        List<ResumeTailoringFactReference> references = currentFactReferences(owner, proposal, true);
+        String currentReviewToken = reviewToken(proposal, references);
+        if (reviewedRevision == null || !MessageDigest.isEqual(
+                currentReviewToken.getBytes(StandardCharsets.UTF_8),
+                reviewedRevision.getBytes(StandardCharsets.UTF_8))) {
+            throw new ResumeTailoringConflictException("stale_review");
+        }
+        Instant now = clock.instant();
+        ResumeTailoringDecision decision = new ResumeTailoringDecision(UUID.randomUUID(), owner, proposal.id(),
+                ResumeTailoringDecisionType.APPROVED, proposal.version(), digest(currentReviewToken),
+                proposal.sourceResumeDocumentId(), proposal.sourceResumeVersion(), proposal.sourceResumeSha256Checksum(),
+                true, now, references);
+        repository.insertDecision(decision);
+        if (!repository.updateProposalLifecycle(owner, proposal.id(), ResumeTailoringLifecycleStatus.APPROVED,
+                expectedVersion)) {
+            throw new ResumeTailoringConflictException("stale_version");
+        }
+        return decision;
+    }
+
+    @Transactional
+    ResumeTailoringDecision reject(UUID proposalId, long expectedVersion) {
+        requireVersion(expectedVersion);
+        UUID owner = owner();
+        ResumeTailoringProposal proposal = lockedProposal(owner, proposalId, expectedVersion);
+        Instant now = clock.instant();
+        ResumeTailoringDecision decision = new ResumeTailoringDecision(UUID.randomUUID(), owner, proposal.id(),
+                ResumeTailoringDecisionType.REJECTED, proposal.version(), null, proposal.sourceResumeDocumentId(),
+                proposal.sourceResumeVersion(), proposal.sourceResumeSha256Checksum(), null, now, List.of());
+        repository.insertDecision(decision);
+        if (!repository.updateProposalLifecycle(owner, proposal.id(), ResumeTailoringLifecycleStatus.REJECTED,
+                expectedVersion)) {
+            throw new ResumeTailoringConflictException("stale_version");
+        }
+        return decision;
     }
 
     @Transactional(readOnly = true)
@@ -121,8 +192,15 @@ class ResumeTailoringService {
         ResumeTailoringProposal proposal = repository.findProposal(owner, proposalId)
                 .orElseThrow(ResumeTailoringNotFoundException::new);
         ensureEvidenceBound(owner, proposal.id());
+        return approvalEligibility(owner, proposal, false);
+    }
+
+    private ResumeTailoringApprovalEligibility approvalEligibility(UUID owner, ResumeTailoringProposal proposal,
+            boolean lockSource) {
         List<String> reasons = new ArrayList<>();
-        BaseResumeDocument currentSource = repository.findBaseResume(owner, proposal.sourceResumeDocumentId())
+        BaseResumeDocument currentSource = (lockSource
+                ? repository.lockBaseResume(owner, proposal.sourceResumeDocumentId())
+                : repository.findBaseResume(owner, proposal.sourceResumeDocumentId()))
                 .orElse(null);
         if (currentSource == null
                 || currentSource.version() != proposal.sourceResumeVersion()
@@ -133,12 +211,87 @@ class ResumeTailoringService {
             reasons.add("missing_supporting_evidence");
         }
         for (ResumeTailoringProposalEvidence evidence : proposal.evidence()) {
-            if (!repository.confirmedCareerFactExists(owner, evidence.careerFactId())) {
+            if ((lockSource
+                    ? repository.lockConfirmedCareerFactReference(owner, evidence.careerFactId())
+                    : repository.findConfirmedCareerFactReference(owner, evidence.careerFactId())).isEmpty()) {
                 reasons.add("supporting_evidence_unavailable");
                 break;
             }
         }
+        repository.findLatestApproval(owner, proposal.id()).ifPresent(approval -> {
+            if (approval.proposalVersion() != proposal.version()
+                    || approval.sourceResumeVersion() != proposal.sourceResumeVersion()
+                    || !approval.sourceResumeSha256Checksum().equals(proposal.sourceResumeSha256Checksum())) {
+                reasons.add("approval_stale");
+                return;
+            }
+            List<ResumeTailoringFactReference> current = availableFactReferences(owner, proposal, lockSource);
+            if (!current.equals(approval.evidenceReferences())) {
+                reasons.add("approval_stale");
+            }
+        });
         return new ResumeTailoringApprovalEligibility(reasons.isEmpty(), reasons);
+    }
+
+    private List<ResumeTailoringFactReference> availableFactReferences(UUID owner, ResumeTailoringProposal proposal,
+            boolean lock) {
+        List<ResumeTailoringFactReference> references = new ArrayList<>();
+        for (ResumeTailoringProposalEvidence evidence : proposal.evidence()) {
+            (lock
+                    ? repository.lockConfirmedCareerFactReference(owner, evidence.careerFactId())
+                    : repository.findConfirmedCareerFactReference(owner, evidence.careerFactId()))
+                    .ifPresent(references::add);
+        }
+        return references.stream()
+                .sorted(Comparator.comparing(ResumeTailoringFactReference::careerFactId))
+                .toList();
+    }
+
+    private ResumeTailoringProposal lockedProposal(UUID owner, UUID proposalId, long expectedVersion) {
+        ResumeTailoringProposal proposal = repository.lockProposal(owner, proposalId)
+                .orElseThrow(ResumeTailoringNotFoundException::new);
+        ensureEvidenceBound(owner, proposal.id());
+        if (proposal.version() != expectedVersion) {
+            throw new ResumeTailoringConflictException("stale_version");
+        }
+        return proposal;
+    }
+
+    private List<ResumeTailoringFactReference> currentFactReferences(UUID owner, ResumeTailoringProposal proposal,
+            boolean lock) {
+        List<ResumeTailoringFactReference> references = new ArrayList<>();
+        for (ResumeTailoringProposalEvidence evidence : proposal.evidence()) {
+            references.add((lock
+                    ? repository.lockConfirmedCareerFactReference(owner, evidence.careerFactId())
+                    : repository.findConfirmedCareerFactReference(owner, evidence.careerFactId()))
+                    .orElseThrow(ResumeTailoringNotFoundException::new));
+        }
+        return references.stream()
+                .sorted(Comparator.comparing(ResumeTailoringFactReference::careerFactId))
+                .toList();
+    }
+
+    private String reviewToken(ResumeTailoringProposal proposal, List<ResumeTailoringFactReference> references) {
+        StringBuilder value = new StringBuilder("RESUME_TAILORING_REVIEW_V1|")
+                .append(proposal.id()).append('|')
+                .append(proposal.version()).append('|')
+                .append(proposal.sourceResumeDocumentId()).append('|')
+                .append(proposal.sourceResumeVersion()).append('|')
+                .append(proposal.sourceResumeSha256Checksum());
+        references.stream()
+                .sorted(Comparator.comparing(ResumeTailoringFactReference::careerFactId))
+                .forEach(reference -> value.append('|').append(reference.careerFactId()).append(':')
+                        .append(reference.version()));
+        return digest(value.toString());
+    }
+
+    private String digest(String value) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 unavailable", e);
+        }
     }
 
     private BaseResumeDocument requireExactSourceResume(UUID owner, UUID sourceResumeDocumentId,

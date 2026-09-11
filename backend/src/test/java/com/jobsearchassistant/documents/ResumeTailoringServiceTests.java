@@ -152,6 +152,89 @@ class ResumeTailoringServiceTests {
                 .isInstanceOf(ResumeTailoringTooLargeException.class);
     }
 
+    @Test
+    void reviewReturnsTokenAndApprovalRequiresAttestationAndExactFreshRevision() {
+        repository.resumes.put(new OwnerId(owner, resumeId), resume(owner, resumeId, 0, DIGEST));
+        repository.confirmedFacts.add(new OwnerId(owner, factId));
+        ResumeTailoringProposal created = service.createDraft(resumeId, 0, DIGEST,
+                input(List.of(new ResumeTailoringEvidenceInput(factId, null))));
+
+        ResumeTailoringReview review = service.review(created.id());
+
+        assertThat(review.reviewToken()).hasSize(64);
+        assertThat(review.evidenceReferences()).containsExactly(new ResumeTailoringFactReference(factId, 0));
+        assertThatThrownBy(() -> service.approve(created.id(), 0, review.reviewToken(), false))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("attestation_required");
+        assertThatThrownBy(() -> service.approve(created.id(), 0, "0".repeat(64), true))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("stale_review");
+
+        ResumeTailoringDecision approved = service.approve(created.id(), 0, review.reviewToken(), true);
+
+        assertThat(approved.decisionType()).isEqualTo(ResumeTailoringDecisionType.APPROVED);
+        assertThat(approved.attestedExperienceAccurate()).isTrue();
+        assertThat(service.getDraft(created.id()).lifecycleStatus()).isEqualTo(ResumeTailoringLifecycleStatus.APPROVED);
+    }
+
+    @Test
+    void approvalIsBlockedByMissingSourceMissingEvidenceAndChangedFactVersion() {
+        repository.resumes.put(new OwnerId(owner, resumeId), resume(owner, resumeId, 0, DIGEST));
+        repository.confirmedFacts.add(new OwnerId(owner, factId));
+        ResumeTailoringProposal created = service.createDraft(resumeId, 0, DIGEST,
+                input(List.of(new ResumeTailoringEvidenceInput(factId, null))));
+        ResumeTailoringReview review = service.review(created.id());
+
+        repository.factVersions.put(new OwnerId(owner, factId), 1L);
+
+        assertThatThrownBy(() -> service.approve(created.id(), 0, review.reviewToken(), true))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("stale_review");
+
+        ResumeTailoringReview fresh = service.review(created.id());
+        repository.resumes.put(new OwnerId(owner, resumeId), resume(owner, resumeId, 1, REPLACEMENT_DIGEST));
+        assertThatThrownBy(() -> service.approve(created.id(), 0, fresh.reviewToken(), true))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("approval_ineligible");
+
+        ResumeTailoringProposal withoutEvidence = service.createDraft(resumeId, 1, REPLACEMENT_DIGEST, input(List.of()));
+        ResumeTailoringReview missing = service.review(withoutEvidence.id());
+        assertThatThrownBy(() -> service.approve(withoutEvidence.id(), 0, missing.reviewToken(), true))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("approval_ineligible");
+    }
+
+    @Test
+    void editingApprovedProposalInvalidatesCurrentApprovalAndDecisionHistoryBlocksDelete() {
+        repository.resumes.put(new OwnerId(owner, resumeId), resume(owner, resumeId, 0, DIGEST));
+        repository.confirmedFacts.add(new OwnerId(owner, factId));
+        ResumeTailoringProposal created = service.createDraft(resumeId, 0, DIGEST,
+                input(List.of(new ResumeTailoringEvidenceInput(factId, null))));
+        service.approve(created.id(), 0, service.review(created.id()).reviewToken(), true);
+
+        assertThatThrownBy(() -> service.deleteDraft(created.id(), 0))
+                .isInstanceOf(ResumeTailoringConflictException.class)
+                .hasMessage("decision_history_exists");
+
+        ResumeTailoringProposal edited = service.updateDraft(created.id(), input(List.of(
+                new ResumeTailoringEvidenceInput(factId, "still user selected"))), 0);
+
+        assertThat(edited.lifecycleStatus()).isEqualTo(ResumeTailoringLifecycleStatus.DRAFT);
+        assertThat(service.evaluateFutureApprovalEligibility(created.id()).reasons()).contains("approval_stale");
+    }
+
+    @Test
+    void rejectionRecordsHistoryWithoutQualificationClaim() {
+        repository.resumes.put(new OwnerId(owner, resumeId), resume(owner, resumeId, 0, DIGEST));
+        ResumeTailoringProposal created = service.createDraft(resumeId, 0, DIGEST, input(List.of()));
+
+        ResumeTailoringDecision rejected = service.reject(created.id(), 0);
+
+        assertThat(rejected.decisionType()).isEqualTo(ResumeTailoringDecisionType.REJECTED);
+        assertThat(rejected.attestedExperienceAccurate()).isNull();
+        assertThat(service.getDraft(created.id()).lifecycleStatus()).isEqualTo(ResumeTailoringLifecycleStatus.REJECTED);
+    }
+
     private ResumeTailoringProposalInput input(List<ResumeTailoringEvidenceInput> evidence) {
         return new ResumeTailoringProposalInput(ResumeTailoringTargetSection.SUMMARY, "Professional summary",
                 "Old summary", "New summary from a confirmed fact", evidence);
@@ -168,8 +251,10 @@ class ResumeTailoringServiceTests {
     private static final class FakeRepository implements ResumeTailoringRepository {
         final Map<OwnerId, BaseResumeDocument> resumes = new HashMap<>();
         final Set<OwnerId> confirmedFacts = new HashSet<>();
+        final Map<OwnerId, Long> factVersions = new HashMap<>();
         final Map<OwnerId, ResumeTailoringProposal> proposals = new HashMap<>();
         final Map<OwnerId, List<ResumeTailoringProposalEvidence>> evidence = new HashMap<>();
+        final Map<OwnerId, List<ResumeTailoringDecision>> decisions = new HashMap<>();
 
         public Optional<BaseResumeDocument> findBaseResume(UUID ownerAccountId, UUID resumeId) {
             return Optional.ofNullable(resumes.get(new OwnerId(ownerAccountId, resumeId)));
@@ -177,6 +262,17 @@ class ResumeTailoringServiceTests {
 
         public boolean confirmedCareerFactExists(UUID ownerAccountId, UUID careerFactId) {
             return confirmedFacts.contains(new OwnerId(ownerAccountId, careerFactId));
+        }
+
+        public Optional<ResumeTailoringFactReference> findConfirmedCareerFactReference(UUID ownerAccountId, UUID careerFactId) {
+            return confirmedCareerFactExists(ownerAccountId, careerFactId)
+                    ? Optional.of(new ResumeTailoringFactReference(careerFactId,
+                            factVersions.getOrDefault(new OwnerId(ownerAccountId, careerFactId), 0L)))
+                    : Optional.empty();
+        }
+
+        public Optional<ResumeTailoringFactReference> lockConfirmedCareerFactReference(UUID ownerAccountId, UUID careerFactId) {
+            return findConfirmedCareerFactReference(ownerAccountId, careerFactId);
         }
 
         public void insertProposal(ResumeTailoringProposal proposal) {
@@ -195,6 +291,18 @@ class ResumeTailoringServiceTests {
             }
             return Optional.of(withEvidence(proposal, findEvidence(ownerAccountId, proposalId,
                     ResumeTailoringService.MAX_EVIDENCE_REFERENCES)));
+        }
+
+        public Optional<ResumeTailoringProposal> lockProposal(UUID ownerAccountId, UUID proposalId) {
+            return findProposal(ownerAccountId, proposalId);
+        }
+
+        public Optional<BaseResumeDocument> lockBaseResume(UUID ownerAccountId, UUID resumeId) {
+            return findBaseResume(ownerAccountId, resumeId);
+        }
+
+        public List<ResumeTailoringProposalEvidence> lockEvidence(UUID ownerAccountId, UUID proposalId, int limit) {
+            return findEvidence(ownerAccountId, proposalId, limit);
         }
 
         public List<ResumeTailoringProposal> findProposals(UUID ownerAccountId, int limit) {
@@ -231,6 +339,21 @@ class ResumeTailoringServiceTests {
             return true;
         }
 
+        public boolean updateProposalLifecycle(UUID ownerAccountId, UUID proposalId, ResumeTailoringLifecycleStatus status,
+                long expectedVersion) {
+            OwnerId key = new OwnerId(ownerAccountId, proposalId);
+            ResumeTailoringProposal existing = proposals.get(key);
+            if (existing == null || existing.version() != expectedVersion) {
+                return false;
+            }
+            proposals.put(key, new ResumeTailoringProposal(existing.id(), existing.ownerAccountId(),
+                    existing.sourceResumeDocumentId(), existing.sourceResumeVersion(),
+                    existing.sourceResumeSha256Checksum(), existing.targetSection(), existing.targetReference(),
+                    existing.originalText(), existing.proposedText(), existing.evidenceState(), status,
+                    existing.evidence(), existing.createdAt(), existing.updatedAt(), existing.version()));
+            return true;
+        }
+
         public void replaceEvidence(UUID ownerAccountId, UUID proposalId, List<ResumeTailoringProposalEvidence> items) {
             evidence.put(new OwnerId(ownerAccountId, proposalId), new ArrayList<>(items));
         }
@@ -246,13 +369,29 @@ class ResumeTailoringServiceTests {
             return true;
         }
 
+        public boolean hasDecisions(UUID ownerAccountId, UUID proposalId) {
+            return !decisions.getOrDefault(new OwnerId(ownerAccountId, proposalId), List.of()).isEmpty();
+        }
+
+        public void insertDecision(ResumeTailoringDecision decision) {
+            decisions.computeIfAbsent(new OwnerId(decision.ownerAccountId(), decision.proposalId()),
+                    key -> new ArrayList<>()).add(decision);
+        }
+
+        public Optional<ResumeTailoringDecision> findLatestApproval(UUID ownerAccountId, UUID proposalId) {
+            return decisions.getOrDefault(new OwnerId(ownerAccountId, proposalId), List.of()).stream()
+                    .filter(decision -> decision.decisionType() == ResumeTailoringDecisionType.APPROVED)
+                    .reduce((first, second) -> second);
+        }
+
         private ResumeTailoringProposal withEvidence(
                 ResumeTailoringProposal proposal,
                 List<ResumeTailoringProposalEvidence> items) {
             return new ResumeTailoringProposal(proposal.id(), proposal.ownerAccountId(),
                     proposal.sourceResumeDocumentId(), proposal.sourceResumeVersion(),
                     proposal.sourceResumeSha256Checksum(), proposal.targetSection(), proposal.targetReference(),
-                    proposal.originalText(), proposal.proposedText(), proposal.evidenceState(), items,
+                    proposal.originalText(), proposal.proposedText(), proposal.evidenceState(),
+                    proposal.lifecycleStatus(), items,
                     proposal.createdAt(), proposal.updatedAt(), proposal.version());
         }
     }
