@@ -21,3 +21,4 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-015](ADR-015-deterministic-fit-scoring-policy.md) | Use deterministic fit scoring policy | Accepted |
 | [ADR-016](ADR-016-truthful-resume-tailoring-proposal-foundation.md) | Establish truthful resume tailoring proposal foundation | Accepted |
 | [ADR-017](ADR-017-resume-tailoring-review-and-approval-integrity.md) | Require explicit resume tailoring review and approval integrity | Accepted |
+| [ADR-018](ADR-018-bounded-docx-replacement-and-export-design.md) | Bound the DOCX experiment and define future anchor/export gates; layout evidence pending | Accepted |

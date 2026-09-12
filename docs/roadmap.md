@@ -56,7 +56,8 @@ Each milestone should be independently reviewable and committable.
 - Phase 6A complete: owner-scoped backend draft proposal foundation for manually proposed résumé changes, exact source résumé version/checksum attribution, explicit confirmed career-fact evidence links or missing-evidence state, optimistic locking, bounded reads, and no approval/export/public API/AI/document editing
 - Phase 6B complete: authenticated no-store backend APIs for owner-scoped tailoring proposal CRUD, read-only before/after review tokens, explicit owner approval attestation, rejection, append-only decision history, transactional source/evidence revalidation, stale-approval detection, and no export/document editing/AI/frontend
 - Phase 6C complete: authenticated Profile-integrated manual tailoring proposal workspace with bounded lists, confirmed-fact selection, source attribution, before/after review, exact-token explicit attestation, approval/rejection, conflict recovery, deletion-history refusal, and in-memory privacy controls. Backend verification, frontend checks, and all four existing browser journeys passed.
-- Remaining Phase 6 work: DOCX fidelity spike, controlled export, and tailoring browser security/release verification. Phase 6 remains open.
+- Phase 6D in progress: test-scoped bounded DOCX replacement, synthetic structural/security fixtures, and ADR-018 export/anchoring design. Local rendering is unavailable; layout fidelity verification is incomplete and the spike is not marked complete. See [fidelity matrix](docx-fidelity-matrix.md).
+- Remaining Phase 6 work: rendered DOCX fidelity verification, controlled export, and tailoring browser security/release verification. Phase 6 remains open.
 
 ## Phase 7 — Optional AI assistance
 
