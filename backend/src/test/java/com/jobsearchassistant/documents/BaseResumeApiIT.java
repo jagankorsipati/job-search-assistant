@@ -96,7 +96,8 @@ class BaseResumeApiIT {
                 .containsEntry("mediaType", BaseResumeValidator.PDF)
                 .containsEntry("byteSize", BaseResumeValidationTests.pdfBytes().length)
                 .containsEntry("version", 0);
-        assertThat(metadata).doesNotContainKeys("ownerAccountId", "storageKey", "sha256Checksum");
+        assertThat(metadata).doesNotContainKeys("ownerAccountId", "storageKey");
+        assertThat((String) metadata.get("sha256Checksum")).matches("[0-9a-f]{64}");
         assertThat(storedOwner()).isEqualTo(memberId);
 
         mvc.perform(get("/api/documents/base-resume").cookie(memberSession))

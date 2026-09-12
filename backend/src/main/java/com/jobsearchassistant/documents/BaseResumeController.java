@@ -126,10 +126,12 @@ class BaseResumeController {
             long byteSize,
             Instant createdAt,
             Instant updatedAt,
-            long version) {
+            long version,
+            String sha256Checksum) {
         static BaseResumeResponse from(BaseResumeDocument document) {
             return new BaseResumeResponse(document.id(), document.originalFilename(), document.mediaType(),
-                    document.byteSize(), document.createdAt(), document.updatedAt(), document.version());
+                    document.byteSize(), document.createdAt(), document.updatedAt(), document.version(),
+                    document.sha256Checksum());
         }
     }
 }

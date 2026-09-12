@@ -221,6 +221,9 @@ class ResumeTailoringServiceTests {
 
         assertThat(edited.lifecycleStatus()).isEqualTo(ResumeTailoringLifecycleStatus.DRAFT);
         assertThat(service.evaluateFutureApprovalEligibility(created.id()).reasons()).contains("approval_stale");
+        ResumeTailoringReview fresh = service.review(created.id());
+        service.approve(created.id(), edited.version(), fresh.reviewToken(), true);
+        assertThat(service.evaluateFutureApprovalEligibility(created.id()).eligible()).isTrue();
     }
 
     @Test

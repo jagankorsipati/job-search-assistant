@@ -146,7 +146,7 @@ class ResumeTailoringService {
         UUID owner = owner();
         ResumeTailoringProposal proposal = lockedProposal(owner, proposalId, expectedVersion);
         ResumeTailoringApprovalEligibility eligibility = approvalEligibility(owner, proposal, true);
-        if (!eligibility.eligible()) {
+        if (eligibility.reasons().stream().anyMatch(reason -> !reason.equals("approval_stale"))) {
             throw new ResumeTailoringConflictException("approval_ineligible");
         }
         List<ResumeTailoringFactReference> references = currentFactReferences(owner, proposal, true);

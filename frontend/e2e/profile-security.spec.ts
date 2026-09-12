@@ -323,7 +323,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   const memberResume = await apiJson<BaseResumeResponse>(memberPage, '/api/documents/base-resume');
   expect(memberResume.originalFilename).toBe('synthetic-base-resume.pdf');
   expect(JSON.stringify(memberResume)).not.toContain('storageKey');
-  expect(JSON.stringify(memberResume)).not.toContain('sha256');
+  expect(memberResume.sha256Checksum).toMatch(/^[0-9a-f]{64}$/);
   await memberPage.reload();
   await expect(memberPage.getByRole('heading', { name: 'Candidate profile' })).toBeVisible();
   await expect(memberPage.getByText('Synthetic Member Profile')).toBeVisible();

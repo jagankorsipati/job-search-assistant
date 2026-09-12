@@ -957,6 +957,73 @@ td {
   line-height: 1.65;
 }
 
+.tailoring-layout {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(0, 3fr);
+  gap: 1.5rem;
+}
+.tailoring-workspace,
+.tailoring-detail,
+.tailoring-layout > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tailoring-list {
+  list-style: none;
+  padding: 0;
+}
+.tailoring-list button {
+  width: 100%;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  white-space: normal;
+}
+.tailoring-list span {
+  display: block;
+  font-size: 0.8rem;
+}
+.tailoring-source dd {
+  margin-left: 0;
+  overflow-wrap: anywhere;
+}
+.tailoring-detail fieldset {
+  min-width: 0;
+  margin: 1rem 0;
+}
+.tailoring-detail label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+.tailoring-detail textarea {
+  min-height: 7rem;
+  width: 100%;
+}
+.tailoring-detail .tailoring-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+.tailoring-check input {
+  width: auto;
+  flex: 0 0 auto;
+}
+.tailoring-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+.tailoring-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .tailoring-layout,
+  .tailoring-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+
 .site-footer {
   display: flex;
   justify-content: space-between;

@@ -8,6 +8,7 @@ export interface BaseResumeMetadata {
   createdAt: string;
   updatedAt: string;
   version: number;
+  sha256Checksum?: string;
 }
 
 export const maxBaseResumeBytes = 5 * 1024 * 1024;

@@ -3,6 +3,7 @@ import { ApiError, authApi, type Identity, type ManagedAccount } from './api/aut
 import { documentsApi, maxBaseResumeBytes, type BaseResumeMetadata } from './api/documents';
 import { ApplicationsWorkspace } from './features/applications/ApplicationsWorkspace';
 import { JobsWorkspace } from './features/jobs/JobsWorkspace';
+import { TailoringWorkspace } from './features/tailoring/TailoringWorkspace';
 import {
   careerFactCategories,
   careerFactStatuses,
@@ -16,7 +17,7 @@ import {
 } from './api/profile';
 
 type View = 'loading' | 'login' | 'shell' | 'invite' | 'admin-invitations' | 'admin-accounts';
-type Workspace = 'dashboard' | 'profile' | 'jobs' | 'applications';
+type Workspace = 'dashboard' | 'profile' | 'jobs' | 'applications' | 'tailoring';
 const upcomingItems = ['Documents'] as const;
 
 const blankProfile: ProfileFields = {
@@ -351,7 +352,9 @@ function Shell({
               <li>
                 <button
                   className="nav-item nav-button"
-                  aria-current={workspace === 'profile' ? 'page' : undefined}
+                  aria-current={
+                    workspace === 'profile' || workspace === 'tailoring' ? 'page' : undefined
+                  }
                   onClick={() => onWorkspace('profile')}
                 >
                   Profile
@@ -393,7 +396,9 @@ function Shell({
           )}
         </aside>
         <main id="main-content" className="main-content">
-          {workspace === 'profile' ? (
+          {workspace === 'tailoring' ? (
+            <TailoringWorkspace onExpired={onExpired} />
+          ) : workspace === 'profile' ? (
             <ProfileWorkspace onExpired={onExpired} />
           ) : workspace === 'jobs' ? (
             <JobsWorkspace onExpired={onExpired} />
@@ -409,6 +414,7 @@ function Shell({
 }
 
 function workspaceFromPath(pathname: string): Workspace {
+  if (pathname === '/profile/tailoring') return 'tailoring';
   if (pathname === '/profile') return 'profile';
   if (pathname === '/jobs' || pathname.startsWith('/jobs/')) return 'jobs';
   if (pathname === '/applications') return 'applications';
@@ -416,6 +422,7 @@ function workspaceFromPath(pathname: string): Workspace {
 }
 
 function workspacePath(workspace: Workspace) {
+  if (workspace === 'tailoring') return '/profile/tailoring';
   if (workspace === 'profile') return '/profile';
   if (workspace === 'jobs') return '/jobs';
   if (workspace === 'applications') return '/applications';
@@ -657,6 +664,9 @@ function ProfileWorkspace({ onExpired }: { onExpired: () => void }) {
       )}
 
       <BaseResumeSection onExpired={onExpired} />
+      <p>
+        <a href="/profile/tailoring">Review resume tailoring proposals</a>
+      </p>
 
       <div className="facts-header">
         <div>

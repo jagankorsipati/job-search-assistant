@@ -158,6 +158,15 @@ class ResumeTailoringApiIT {
                 .andExpect(jsonPath("$.lifecycleStatus").value("DRAFT"))
                 .andExpect(jsonPath("$.version").value(1));
 
+        String freshRevision = reviewToken(proposalId);
+        mvc.perform(withCsrf(post("/api/documents/resume-tailoring-proposals/{id}/approve", proposalId), memberSession)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json.writeValueAsString(Map.of("expectedVersion", 1,
+                        "reviewedRevision", freshRevision, "attestedExperienceAccurate", true))))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/documents/resume-tailoring-proposals/{id}/review", proposalId).cookie(memberSession))
+                .andExpect(jsonPath("$.eligibility.eligible").value(true));
+
         mvc.perform(withCsrf(post("/api/documents/resume-tailoring-proposals/{id}/reject", proposalId), memberSession)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(Map.of("expectedVersion", 1))))

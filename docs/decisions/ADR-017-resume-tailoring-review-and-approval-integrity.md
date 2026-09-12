@@ -26,6 +26,8 @@ Draft deletion remains physical only while no decision history exists. Once a pr
 
 ## Consequences
 
+Phase 6C implementation clarification: `approval_stale` describes historical approval validity and must not permanently block a fresh attestation. Approval may proceed when that is the only eligibility reason, after the existing transactional source/evidence checks and exact reviewed-token comparison. Source changes and unavailable evidence still block approval. The owner-scoped base-resume metadata response includes its checksum so the existing creation contract can be used without downloading or parsing the document.
+
 - A stale review, stale expected version, changed source resume, missing evidence, unconfirmed/archived/deleted/foreign evidence, or changed fact version blocks approval with a safe conflict.
 - Historical approvals remain auditable without claiming they are still current after later source/evidence changes.
 - The API can support future frontend review without giving the browser authority over ownership or export readiness.

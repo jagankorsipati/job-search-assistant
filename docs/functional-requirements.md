@@ -78,6 +78,10 @@
 
 ## Applications
 
+- **FR-074:** Phase 6C provides an authenticated Profile-integrated tailoring workspace for bounded proposal lists, manual creation/editing, explicit confirmed-fact selection, and confirmed deletion with decision-history refusal.
+- **FR-075:** Before/after review displays exact source attribution and current evidence versions, labels original text as user-supplied and unchecked, and requires an unchecked explicit attestation plus the exact server review token for approval.
+- **FR-076:** Conflicts retain unsaved input and invalidate review/attestation; failed approval never displays success. Selection changes discard in-memory review tokens and stale asynchronous responses cannot overwrite newer selections. Historical approval does not imply current validity, verification, export readiness, or submission permission.
+
 - **FR-043:** Users can manage application stage, notes, dates, contacts, and follow-ups.
 - **FR-044:** Stage changes form an immutable history.
 - **FR-045:** The system does not submit an application in V1.
