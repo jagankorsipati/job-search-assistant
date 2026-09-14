@@ -174,8 +174,16 @@ function Start-Backend {
     else {
         Remove-Item Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD -ErrorAction SilentlyContinue
     }
-    return Start-Process -FilePath 'java' -ArgumentList @('-jar', $jarPath) -WorkingDirectory $backendRoot -WindowStyle Hidden `
-        -RedirectStandardOutput $StandardOutput -RedirectStandardError $StandardError -PassThru
+    $startParameters = @{
+        FilePath = 'java'
+        ArgumentList = @('-jar', $jarPath)
+        WorkingDirectory = $backendRoot
+        RedirectStandardOutput = $StandardOutput
+        RedirectStandardError = $StandardError
+        PassThru = $true
+    }
+    if ($env:OS -eq 'Windows_NT') { $startParameters.WindowStyle = 'Hidden' }
+    return Start-Process @startParameters
 }
 
 Remove-Item -LiteralPath (Join-Path $frontendRoot 'test-results'), `
@@ -209,8 +217,16 @@ try {
     $npmExecutable = if ($env:OS -eq 'Windows_NT') { 'npm.cmd' } else { 'npm' }
     Write-Host 'Starting the loopback Vite development proxy.' -ForegroundColor Cyan
     $viteEntry = Join-Path $frontendRoot 'node_modules\vite\bin\vite.js'
-    $frontendProcess = Start-Process -FilePath 'node' -ArgumentList @($viteEntry, '--host', '127.0.0.1', '--port', '5173') `
-        -WorkingDirectory $frontendRoot -WindowStyle Hidden -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
+    $startParameters = @{
+        FilePath = 'node'
+        ArgumentList = @($viteEntry, '--host', '127.0.0.1', '--port', '5173')
+        WorkingDirectory = $frontendRoot
+        RedirectStandardOutput = $frontendOutput
+        RedirectStandardError = $frontendError
+        PassThru = $true
+    }
+    if ($env:OS -eq 'Windows_NT') { $startParameters.WindowStyle = 'Hidden' }
+    $frontendProcess = Start-Process @startParameters
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
     Write-Host 'Running Playwright identity, profile, base resume, job, application, and fit-analysis security journeys.' -ForegroundColor Cyan
