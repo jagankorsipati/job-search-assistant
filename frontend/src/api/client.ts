@@ -68,6 +68,31 @@ export async function apiDownload(url: string): Promise<Response> {
   return response;
 }
 
+export async function apiPostDownload(url: string, body: unknown): Promise<Blob> {
+  const token = await csrfToken();
+  const response = await fetch(url, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'Cache-Control': 'no-store',
+      'Content-Type': 'application/json',
+      [token.headerName]: token.token,
+    },
+    body: JSON.stringify(body),
+  });
+  if (response.status === 401) resetCsrf();
+  if (!response.ok) throw await apiError(response);
+  if (
+    response.headers.get('Content-Type')?.split(';')[0] !==
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  )
+    throw new ApiError(502);
+  const blob = await response.blob();
+  if (blob.size === 0 || blob.size > 5 * 1024 * 1024) throw new ApiError(502);
+  return blob;
+}
+
 async function apiWrite<T>(
   method: 'POST' | 'PUT' | 'DELETE',
   url: string,

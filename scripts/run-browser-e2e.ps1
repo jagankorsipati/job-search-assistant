@@ -53,9 +53,13 @@ function Wait-HttpReady {
 
 function Get-AdministratorCount {
     $query = "SELECT count(*) FROM job_search_assistant.user_account WHERE role = 'ADMIN' AND status = 'ACTIVE';"
-    $result = & docker compose -p $projectName -f $composeFile exec -T postgres-e2e `
-        psql -U job_search_assistant_e2e -d job_search_assistant_e2e -Atc $query 2>$null
-    if ($LASTEXITCODE -ne 0) { return -1 }
+    # Windows PowerShell can throw on native stderr before the exit-code check.
+    try {
+        $result = & docker compose -p $projectName -f $composeFile exec -T postgres-e2e `
+            psql -U job_search_assistant_e2e -d job_search_assistant_e2e -Atc $query 2>$null
+        if ($LASTEXITCODE -ne 0) { return -1 }
+    }
+    catch { return -1 }
     $count = 0
     if ([int]::TryParse(($result | Select-Object -Last 1), [ref]$count)) { return $count }
     return -1
@@ -170,7 +174,7 @@ function Start-Backend {
     else {
         Remove-Item Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD -ErrorAction SilentlyContinue
     }
-    return Start-Process -FilePath 'java' -ArgumentList @('-jar', $jarPath) -WorkingDirectory $backendRoot `
+    return Start-Process -FilePath 'java' -ArgumentList @('-jar', $jarPath) -WorkingDirectory $backendRoot -WindowStyle Hidden `
         -RedirectStandardOutput $StandardOutput -RedirectStandardError $StandardError -PassThru
 }
 
@@ -206,7 +210,7 @@ try {
     Write-Host 'Starting the loopback Vite development proxy.' -ForegroundColor Cyan
     $viteEntry = Join-Path $frontendRoot 'node_modules\vite\bin\vite.js'
     $frontendProcess = Start-Process -FilePath 'node' -ArgumentList @($viteEntry, '--host', '127.0.0.1', '--port', '5173') `
-        -WorkingDirectory $frontendRoot -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
+        -WorkingDirectory $frontendRoot -WindowStyle Hidden -RedirectStandardOutput $frontendOutput -RedirectStandardError $frontendError -PassThru
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
     Write-Host 'Running Playwright identity, profile, base resume, job, application, and fit-analysis security journeys.' -ForegroundColor Cyan

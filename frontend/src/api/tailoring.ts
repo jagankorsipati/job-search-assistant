@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut } from './client';
+import { apiDelete, apiGet, apiPost, apiPut, apiPostDownload } from './client';
 
 export const targetSections = [
   'SUMMARY',
@@ -52,6 +52,16 @@ export interface ProposalDecision {
   evidenceReferences: { careerFactId: string; version: number }[];
 }
 const base = '/api/documents/resume-tailoring-proposals';
+export interface ResolvedReview {
+  review: ProposalReview;
+  sourceText: string;
+  targetPolicy: string;
+  documentPart: string;
+  bodyChildIndex: number;
+  paragraphSha256: string;
+  resolvedRevision: string;
+  exportApproved: boolean;
+}
 const path = (id: string) => `${base}/${encodeURIComponent(id)}`;
 // Explicit payload projection keeps UI-only state and attribution out of writes.
 const fields = (input: ProposalFields): ProposalFields => ({
@@ -62,6 +72,18 @@ const fields = (input: ProposalFields): ProposalFields => ({
   evidence: input.evidence.map(({ careerFactId, userNote }) => ({ careerFactId, userNote })),
 });
 export const tailoringApi = {
+  resolvedReview: (id: string, expectedVersion: number) =>
+    apiGet<ResolvedReview>(`${path(id)}/resolved-review?expectedVersion=${expectedVersion}`),
+  approveResolved: (id: string, expectedVersion: number, resolvedRevision: string) =>
+    apiPost<
+      Pick<ProposalDecision, 'id' | 'proposalId' | 'proposalVersion' | 'decisionType' | 'decidedAt'>
+    >(`${path(id)}/approve-resolved`, {
+      expectedVersion,
+      resolvedRevision,
+      attestedTargetAndExperience: true,
+    }),
+  export: (id: string, expectedVersion: number, resolvedRevision: string) =>
+    apiPostDownload(`${path(id)}/export`, { expectedVersion, resolvedRevision }),
   list: () => apiGet<Proposal[]>(`${base}?limit=100`),
   get: (id: string) => apiGet<Proposal>(path(id)),
   create: (input: ProposalFields, source: SourceResume) =>

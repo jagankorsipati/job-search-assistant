@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError } from '../../api/client';
 import { documentsApi } from '../../api/documents';
+import { ResolvedExportReview } from './ResolvedExportReview';
 import { profileApi, type CareerFact } from '../../api/profile';
 import {
   tailoringApi,
@@ -164,6 +165,7 @@ function ProposalPanel({
   const [message, setMessage] = useState('');
   const [deleting, setDeleting] = useState(false);
   const [reload, setReload] = useState(0);
+  const [exportEpoch, setExportEpoch] = useState(0);
   const generation = useRef(0);
   const expired = useRef(onExpired);
   useEffect(() => {
@@ -212,6 +214,7 @@ function ProposalPanel({
     };
   }, [id, reload]);
   const invalidate = () => {
+    setExportEpoch((value) => value + 1);
     setReview(undefined);
     setReviewFacts([]);
     setAttested(false);
@@ -364,6 +367,23 @@ function ProposalPanel({
       )}
       {proposal && !review && (
         <p>Current eligibility has not been evaluated. Load a fresh review before approval.</p>
+      )}
+      {proposal && !dirty && (
+        <ResolvedExportReview
+          key={`${proposal.id}:${proposal.version}:${exportEpoch}`}
+          proposal={proposal}
+          disabled={busy}
+          onExpired={onExpired}
+          onApproved={() => {
+            invalidate();
+            const approved = { ...proposal, lifecycleStatus: 'APPROVED' as const };
+            setProposal(approved);
+            onSaved(approved);
+            setMessage(
+              'Resolved-target approval recorded. Review the actual target again before downloading.',
+            );
+          }}
+        />
       )}
       <form aria-label="Tailoring proposal" onSubmit={(event) => void save(event)}>
         <fieldset disabled={busy || !source}>

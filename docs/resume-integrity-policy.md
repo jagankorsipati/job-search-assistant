@@ -2,6 +2,8 @@
 
 ## Non-negotiable rule
 
+Phase 6E requires fresh attestation to an actual resolved DOCX location and exact replacement before download. Legacy wording-only approval never grants export authority. The service rechecks current proposal, latest approval, pinned source and fact versions after generation, refusing stale or rejected state. Source-text matching proves only a document location, not the truth of claims or layout fidelity. Export changes one separate DOCX and does not authorize application submission. Rendering verification remains open; see [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md).
+
 The system may reorganize, emphasize, and reword verified experience. It must never invent a skill, accomplishment, employer, title, certification, responsibility, education item, or metric.
 
 ## Fact states

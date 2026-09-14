@@ -33,7 +33,7 @@ import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 
-/** Synthetic-fixture experiment only: no application service, storage mutation, or export endpoint. */
+/** Bounded Phase 6D replacement engine; support and refusal rules are shared with its fixture tests. */
 final class DocxReplacementSpike {
     static final String W = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
     static final String REL = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -47,6 +47,9 @@ final class DocxReplacementSpike {
     static final int RATIO_LIMIT = 100;
 
     record Anchor(String sourceSha256, int bodyChildIndex, String paragraphSha256) { }
+    record ResolvedTarget(Anchor anchor, String sourceText) {
+        @Override public String toString() { return "ResolvedTarget[redacted]"; }
+    }
     static final class Refusal extends RuntimeException {
         Refusal(String code) { super(code); }
     }
@@ -54,10 +57,15 @@ final class DocxReplacementSpike {
     private record Target(Element paragraph, int bodyChildIndex) { }
 
     static Anchor resolve(byte[] source, String expectedSha256, String original) {
+        return resolveTarget(source, expectedSha256, original).anchor();
+    }
+
+    static ResolvedTarget resolveTarget(byte[] source, String expectedSha256, String original) {
         validateText(original);
         PackageData data = read(source, expectedSha256);
         Target target = target(data, original);
-        return new Anchor(expectedSha256, target.bodyChildIndex(), sha(xml(target.paragraph())));
+        return new ResolvedTarget(new Anchor(expectedSha256, target.bodyChildIndex(), sha(xml(target.paragraph()))),
+                paragraphText(target.paragraph()));
     }
 
     static byte[] replace(byte[] source, Anchor anchor, String original, String replacement) {

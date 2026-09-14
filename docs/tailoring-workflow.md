@@ -1,5 +1,13 @@
 # Resume tailoring review workspace
 
+## Controlled DOCX download
+
+For a saved proposal, choose **Review actual DOCX target**. Only a unique complete paragraph in the main DOCX body with supported run formatting can be resolved. Review shows extracted source text, the intended replacement, location, source checksum/version, and linked confirmed facts. Free-form target references and user-supplied original text alone never authorize replacement.
+
+Check the fresh, initially unchecked location/experience attestation and choose **Approve resolved change**. This appends an approval with a resolved-target binding; earlier wording-only approvals cannot authorize download. Reload the actual-target review after approval, then deliberately choose **Download tailored DOCX**. One proposal changes one separate DOCX; the original is untouched. Generation happens outside database locks, with final version/approval checks before release. Stale or unsupported operations return no attachment.
+
+Edits, source replacement, fact changes, rejection, or a different decision require fresh review and, when necessary, attestation. Unsaved editor values survive failures. The browser reports response received/download requested, not successful file saving, and revokes its temporary object URL. Layout fidelity remains unverified without a renderer. Rendering gates for 6D/6E and Phase 6F browser release checks remain open. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md).
+
 Phase 6C adds `/profile/tailoring`, reached from Profile beside the base resume. The authenticated shell and shared CSRF/no-store client enforce the existing session model. Administrators use the same owner-scoped resources as members.
 
 ## Manual workflow

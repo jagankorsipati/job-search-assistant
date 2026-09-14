@@ -1,5 +1,7 @@
 # Security and Privacy
 
+Phase 6E adds owner-scoped resolved-target review/approval and single-proposal DOCX download. POST operations require CSRF; all responses are no-store. Complete bounded output is validated before response construction, and final transactional revalidation authorizes release after generation. The original stored resume is never overwritten. New request/review DTO string representations are redacted; download resources expose neither storage paths nor bytes in debug descriptions. No generated artifact is persisted, and temporary source snapshots are removed on failure and success. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) for authorization, limits, and remaining rendering/release gates.
+
 ## Sensitive data
 
 Résumés, contact details, work history, education, notes, job activity, credentials, session tokens, and generated documents are sensitive. Secrets and password hashes are restricted security data.

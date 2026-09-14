@@ -49,15 +49,16 @@ Each milestone should be independently reviewable and committable.
 - Phase 5B complete: internal deterministic fit scoring policy over confirmed requirements and explicit evidence links, with support and coverage scores, per-importance breakdowns, structured gaps and contradictions, and no persistence or public analysis route
 - Phase 5C complete: authenticated read-only fit-analysis API for one owned immutable job-description snapshot, computed on demand with `DETERMINISTIC_FIT_V1`, no-store responses, structured explanations, bounded-analysis refusal, and no score persistence
 - Phase 5D complete: authenticated Jobs-integrated frontend workflow for exact-snapshot requirement review, explicit evidence linking, server-authoritative support and coverage presentation, neutral gaps and contradictions, optimistic-conflict recovery, accessibility coverage, and no browser persistence
-- Phase 5E in progress: real-browser fit-analysis workflow, isolation, conflict, CSRF/session, privacy, diagnostics, ordering, and release-readiness verification
+- Phase 5E Complete   : real-browser fit-analysis workflow, isolation, conflict, CSRF/session, privacy, diagnostics, ordering, and release-readiness verification
 
 ## Phase 6 — Truthful document tailoring
 
-- Phase 6A complete: owner-scoped backend draft proposal foundation for manually proposed résumé changes, exact source résumé version/checksum attribution, explicit confirmed career-fact evidence links or missing-evidence state, optimistic locking, bounded reads, and no approval/export/public API/AI/document editing
-- Phase 6B complete: authenticated no-store backend APIs for owner-scoped tailoring proposal CRUD, read-only before/after review tokens, explicit owner approval attestation, rejection, append-only decision history, transactional source/evidence revalidation, stale-approval detection, and no export/document editing/AI/frontend
-- Phase 6C complete: authenticated Profile-integrated manual tailoring proposal workspace with bounded lists, confirmed-fact selection, source attribution, before/after review, exact-token explicit attestation, approval/rejection, conflict recovery, deletion-history refusal, and in-memory privacy controls. Backend verification, frontend checks, and all four existing browser journeys passed.
-- Phase 6D in progress: test-scoped bounded DOCX replacement, synthetic structural/security fixtures, and ADR-018 export/anchoring design. Local rendering is unavailable; layout fidelity verification is incomplete and the spike is not marked complete. See [fidelity matrix](docx-fidelity-matrix.md).
-- Remaining Phase 6 work: rendered DOCX fidelity verification, controlled export, and tailoring browser security/release verification. Phase 6 remains open.
+- Proposal and evidence model
+- Before/after review and approval
+- DOCX fidelity spike, export, and regression tests
+- Phase 6D rendering verification remains open: no local renderer is available; see the [fidelity matrix](docx-fidelity-matrix.md).
+- Phase 6E implementation: single-proposal DOCX download with actual source-target review, fresh resolved-target attestation, V13 binding, final transactional revalidation, and inherited bounded replacement rules. Rendering verification is incomplete; Phase 6E is not marked complete.
+- Phase 6F tailoring browser security and release verification remains pending. Phase 6 remains open.
 
 ## Phase 7 — Optional AI assistance
 
