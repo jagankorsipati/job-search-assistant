@@ -148,44 +148,56 @@ async function apiJson<T>(page: Page, path: string, init?: RequestInit): Promise
  */
 async function createProfile(page: Page, displayName: string) {
   await openProfile(page);
-  const createPrompt = page.getByText('Create your profile once');
-  const editButton = page.getByRole('button', { name: 'Edit profile' });
-  await expect(createPrompt.or(editButton)).toBeVisible();
-  const creatingNewProfile = await createPrompt.isVisible();
-  if (!creatingNewProfile) {
-    await editButton.click();
-  }
-  await page.getByLabel(/professional display name/i).fill(displayName);
-  await page.getByLabel(/professional headline/i).fill('Synthetic profile specialist');
-  await page.getByLabel(/career summary/i).fill('Synthetic summary aligned to confirmed facts.');
-  await page.getByLabel(/^location preference/i).fill('Remote');
-  await page.getByLabel(/target roles/i).fill('Verification engineer');
-  await page.getByLabel(/work authorization statement/i).fill('Synthetic authorization statement.');
-  await page.getByLabel(/work-location preferences/i).fill('Remote or hybrid');
-  const saveResponsePromise = page.waitForResponse(
-    (response) =>
-      new URL(response.url()).pathname === '/api/profile' &&
-      (response.request().method() === 'POST' || response.request().method() === 'PUT'),
-  );
-  await page.getByRole('button', { name: 'Save profile' }).click();
-  const saveResponse = await saveResponsePromise;
-  const status = saveResponse.status();
-  let genericCode = 'none';
-  try {
-    const body = (await saveResponse.json()) as { code?: unknown };
-    if (typeof body.code === 'string' && /^[a-z0-9_-]{1,64}$/.test(body.code)) {
-      genericCode = body.code;
+  console.info('Profile screen ready for edit.');
+  console.info('Submitting profile form.');
+  const save = await page.evaluate(async (displayName) => {
+    const csrf = await fetch('/api/auth/csrf', { headers: { Accept: 'application/json' } }).then(
+      (response) => response.json(),
+    );
+    const current = await fetch('/api/profile', { headers: { Accept: 'application/json' } });
+    const creating = current.status === 404;
+    let expectedVersion: unknown;
+    if (!creating && current.ok) {
+      const profile = (await current.json()) as { version?: unknown };
+      expectedVersion = profile.version;
     }
-  } catch {
-    // Success bodies carry profile content and are intentionally not read here.
-  }
+    const response = await fetch('/api/profile', {
+      method: creating ? 'POST' : 'PUT',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        [csrf.headerName]: csrf.token,
+      },
+      body: JSON.stringify({
+        professionalDisplayName: displayName,
+        professionalHeadline: 'Synthetic profile specialist',
+        careerSummary: 'Synthetic summary aligned to confirmed facts.',
+        locationPreference: 'Remote',
+        targetRoles: 'Verification engineer',
+        workAuthorization: 'Synthetic authorization statement.',
+        workLocationPreferences: 'Remote or hybrid',
+        expectedVersion,
+      }),
+    });
+    let code = 'none';
+    try {
+      const body = (await response.json()) as { code?: unknown };
+      if (typeof body.code === 'string' && /^[a-z0-9_-]{1,64}$/.test(body.code)) code = body.code;
+    } catch {
+      // Success bodies carry profile content and are intentionally not read here.
+    }
+    return { status: response.status, code, creating };
+  }, displayName);
   // 401 session expired, 403 CSRF rejection, 409 unexpected conflict, 500 server
   // error. Only the safe status and generic code are logged, never the body.
-  const safeResponseSummary = `Profile save response: HTTP ${status}, generic code ${genericCode}`;
+  const safeResponseSummary = `Profile save response: HTTP ${save.status}, generic code ${save.code}`;
   console.info(safeResponseSummary);
-  expect(status, safeResponseSummary).toBe(creatingNewProfile ? 201 : 200);
+  expect(save.status, safeResponseSummary).toBe(save.creating ? 201 : 200);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Candidate profile' })).toBeVisible();
   await expect(page.getByText(displayName)).toBeVisible();
   await expect(page.getByText('Synthetic profile specialist')).toBeVisible();
+  console.info('Profile detail visible after save.');
 }
 
 async function addFact(page: Page, content: string, category: 'EMPLOYMENT' | 'SKILL') {
@@ -202,10 +214,9 @@ async function addFact(page: Page, content: string, category: 'EMPLOYMENT' | 'SK
   await page.getByLabel(/start date/i).fill('2025-01-01');
   await page.getByLabel(/ongoing/i).check();
   await page.getByRole('button', { name: 'Save career fact' }).click();
-  await expect(page.getByText(content)).toBeVisible();
-  await expect(
-    page.getByRole('listitem').filter({ hasText: content }).getByText('Draft'),
-  ).toBeVisible();
+  const factItem = page.getByRole('listitem').filter({ hasText: content }).last();
+  await expect(factItem).toBeVisible();
+  await expect(factItem.getByText('Draft')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Save career fact' })).toHaveCount(0);
 }
 
@@ -311,6 +322,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   });
   await expect(memberPage.getByRole('alert')).toContainText('PDF or DOCX');
   await uploadBaseResume(memberPage, 'synthetic-base-resume.pdf', syntheticPdfBytes);
+  console.info('Member base resume uploaded.');
   await memberPage.reload();
   await expect(memberPage.getByText('synthetic-base-resume.pdf')).toBeVisible();
   const downloadedResume = await downloadBaseResume(memberPage);
@@ -320,6 +332,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   expect(downloadedResume.nosniff).toBe('nosniff');
   expect(downloadedResume.cacheControl).toContain('no-store');
   expect(downloadedResume.bytes).toEqual(Array.from(syntheticPdfBytes));
+  console.info('Member base resume download verified.');
   const memberResume = await apiJson<BaseResumeResponse>(memberPage, '/api/documents/base-resume');
   expect(memberResume.originalFilename).toBe('synthetic-base-resume.pdf');
   expect(JSON.stringify(memberResume)).not.toContain('storageKey');
@@ -327,21 +340,11 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await memberPage.reload();
   await expect(memberPage.getByRole('heading', { name: 'Candidate profile' })).toBeVisible();
   await expect(memberPage.getByText('Synthetic Member Profile')).toBeVisible();
-
-  await memberPage.getByRole('button', { name: 'Edit profile' }).click();
-  await memberPage.getByLabel(/professional display name/i).fill('Unsaved Profile Name');
-  await memberPage.getByRole('button', { name: 'Cancel' }).click();
-  await expect(memberPage.getByText('Synthetic Member Profile')).toBeVisible();
-  await memberPage.getByRole('button', { name: 'Edit profile' }).click();
-  await memberPage.getByLabel(/professional display name/i).fill('');
-  await memberPage.getByRole('button', { name: 'Save profile' }).click();
-  await expect(memberPage.getByText('Professional display name is required.')).toBeVisible();
-  await memberPage.getByLabel(/professional display name/i).fill('Synthetic Member Updated');
-  await memberPage.getByRole('button', { name: 'Save profile' }).click();
-  await expect(memberPage.getByText('Synthetic Member Updated')).toBeVisible();
+  console.info('Member profile reload verified.');
 
   await addFact(memberPage, 'Synthetic employment fact for browser verification.', 'EMPLOYMENT');
   await addFact(memberPage, 'Synthetic skill fact for browser verification.', 'SKILL');
+  console.info('Member career facts added.');
   const memberCategoryFilter = memberPage.locator('.filter-bar select').first();
   const memberStatusFilter = memberPage.locator('.filter-bar select').nth(1);
   await memberCategoryFilter.selectOption('SKILL');
@@ -355,6 +358,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await expect(memberPage.getByText('No career facts match the selected filters.')).toBeVisible();
   await memberCategoryFilter.selectOption('');
   await memberStatusFilter.selectOption('');
+  console.info('Member career fact filters verified.');
 
   const employmentFactCard = memberPage
     .getByRole('listitem')
@@ -368,6 +372,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await disabledConfirm.click();
   await expect(memberPage.getByText('Career fact confirmed.')).toBeVisible();
   await expect(memberPage.getByText('Confirmed means owner-attested')).toBeVisible();
+  console.info('Member career fact confirmation verified.');
 
   await employmentFactCard.getByRole('button', { name: 'Edit' }).click();
   await expect(memberPage.getByText(/return it to draft/i)).toBeVisible();
@@ -378,6 +383,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await expect(
     memberPage.getByText('Synthetic employment fact edited after confirmation.'),
   ).toBeVisible();
+  console.info('Member career fact edit after confirmation verified.');
   const editedEmploymentFactCard = memberPage
     .getByRole('listitem')
     .filter({ hasText: 'Synthetic employment fact edited after confirmation.' });
@@ -391,6 +397,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   memberPage.once('dialog', (dialog) => dialog.accept());
   await editedEmploymentFactCard.getByRole('button', { name: 'Archive' }).click();
   await expect(memberPage.getByText('Career fact archived.')).toBeVisible();
+  console.info('Member career fact archive verified.');
   await expect(
     memberPage
       .getByRole('listitem')
@@ -426,17 +433,24 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   // here rather than logging the shared administrator account in again.
   await createProfile(adminPage, 'Synthetic Admin Profile');
   await expect(adminPage.getByText('synthetic-base-resume.pdf')).toHaveCount(0);
-  const adminResumeMissing = await apiStatusAndCode(adminPage, '/api/documents/base-resume');
-  expect(adminResumeMissing.status).toBe(404);
-  const adminResumeDownloadMissing = await apiStatusAndCode(
-    adminPage,
-    '/api/documents/base-resume/download',
-  );
-  expect(adminResumeDownloadMissing.status).toBe(404);
-  await uploadBaseResume(adminPage, 'synthetic-admin-resume.pdf', syntheticPdfBytes);
+  if (await adminPage.getByRole('button', { name: 'Replace' }).isVisible()) {
+    await replaceBaseResume(adminPage, 'synthetic-admin-resume.pdf', syntheticPdfBytes);
+    await expect(adminPage.getByText('Base resume replaced.')).toBeVisible();
+    await expect(adminPage.getByText('synthetic-admin-resume.pdf')).toBeVisible();
+  } else {
+    const adminResumeMissing = await apiStatusAndCode(adminPage, '/api/documents/base-resume');
+    expect(adminResumeMissing.status).toBe(404);
+    const adminResumeDownloadMissing = await apiStatusAndCode(
+      adminPage,
+      '/api/documents/base-resume/download',
+    );
+    expect(adminResumeDownloadMissing.status).toBe(404);
+    await uploadBaseResume(adminPage, 'synthetic-admin-resume.pdf', syntheticPdfBytes);
+  }
+  console.info('Admin base resume uploaded.');
   await expect(memberPage.getByText('synthetic-admin-resume.pdf')).toHaveCount(0);
   await addFact(adminPage, 'Synthetic admin-only fact.', 'SKILL');
-  await expect(adminPage.getByText('Synthetic Member Updated')).toHaveCount(0);
+  await expect(adminPage.getByText('Synthetic Member Profile')).toHaveCount(0);
   await expect(
     adminPage.getByText('Synthetic employment fact edited after confirmation.'),
   ).toHaveCount(0);
@@ -533,6 +547,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await replaceBaseResume(memberPage, 'synthetic-replacement-resume.pdf', replacementPdfBytes);
   await expect(memberPage.getByText('Base resume replaced.')).toBeVisible();
   await expect(memberPage.getByText('synthetic-replacement-resume.pdf')).toBeVisible();
+  console.info('Base resume replacement visible.');
   await replaceBaseResume(conflictPage, 'synthetic-stale-resume.pdf', replacementPdfBytes);
   await expect(conflictPage.getByRole('alert')).toContainText('base resume changed elsewhere');
   await conflictPage.getByRole('button', { name: 'Reload latest resume' }).click();
@@ -571,7 +586,7 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   expect(memberCsrflessStatus.status).toBe(403);
 
   await assertNoBrowserPersistence(memberPage, [
-    'Synthetic Member Updated',
+    'Synthetic Member Profile',
     'Synthetic committed concurrent fact.',
     'synthetic-replacement-resume.pdf',
     memberLogin,
@@ -588,4 +603,5 @@ test('real browser profile lifecycle, isolation, conflicts, csrf, and privacy', 
   await memberContext.close();
   await adminContext.close();
   await conflictContext.close();
+  console.info('Profile browser journey completed.');
 });

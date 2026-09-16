@@ -1,5 +1,9 @@
 # Functional Requirements
 
+## Current implementation and release boundary
+
+Requirements describe intended behavior unless a milestone is explicitly identified. Phase 6 supports manual proposals and both ordinary and target-bound approvals. A separate deliberate export produces one ephemeral DOCX after final source/proposal/fact/decision revalidation, never overwriting the source. No AI, automatic suggestions, fact extraction, bulk export or submission is implemented. Historical 6A/B exclusions describe those milestone boundaries, not the present aggregate. General data export/deletion remains planned. See [Phase 6 verification](security/phase-6-verification.md).
+
 ## Identity and isolation
 
 - **FR-001:** Users can create and authenticate to local accounts.
@@ -89,6 +93,11 @@
 - **FR-047:** Application archival is separate from status so final outcomes remain visible in history.
 
 ## Data control and operations
+
+- **FR-077:** A separate actual-target review resolves one unique supported whole DOCX body paragraph from verified source bytes and binds exact proposal/source/fact revisions; free-form references and ordinary approval do not authorize export.
+- **FR-078:** A deliberate owner-scoped CSRF-protected request generates one separate ephemeral DOCX outside database locks, then revalidates all source/proposal/fact/decision state under locks before releasing complete validated output. Failure releases no attachment; no source is overwritten.
+- **FR-079:** Target-bound approval requires explicit initially unchecked attestation. Missing, ambiguous, unsupported, stale, rejected and ineligible cases refuse; changed approved wording/evidence requires fresh review. Exported claims remain owner-attested, not independently verified.
+- **FR-080:** Phase 6 release requires real-browser security/download verification, final-code ordering/stability checks, rendered synthetic/API-output layout evidence, sanitized artifacts and hosted CI for the actual commit. Implementation alone does not close these gates.
 
 - **FR-050:** Users can export their structured data and documents.
 - **FR-051:** Users can delete their account data after explicit confirmation.

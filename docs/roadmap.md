@@ -43,22 +43,22 @@ Each milestone should be independently reviewable and committable.
 - Phase 4D complete: authenticated `/jobs` and `/applications` frontend workspaces with active/archived lists, job capture, immutable snapshot display/append, draft application creation, explicit status transitions, status history, notes, next actions, archive/restore, session-expiry handling, and optimistic-conflict recovery without browser persistence
 - Phase 4E complete: deterministic local duplicate warnings, job/application search and filter refinement, and real-browser job/application lifecycle, isolation, conflict, CSRF, privacy, and sanitized-diagnostic verification
 
-## Phase 5 — Deterministic fit analysis
+## Phase 5 — Deterministic fit analysis (complete)
 
 - Phase 5A complete: owner-scoped job requirements attached to exact immutable job-description snapshots, explicit requirement category/importance/review status, user-controlled links to existing confirmed candidate evidence, optimistic locking, bounded APIs, and documented truthfulness boundaries
 - Phase 5B complete: internal deterministic fit scoring policy over confirmed requirements and explicit evidence links, with support and coverage scores, per-importance breakdowns, structured gaps and contradictions, and no persistence or public analysis route
 - Phase 5C complete: authenticated read-only fit-analysis API for one owned immutable job-description snapshot, computed on demand with `DETERMINISTIC_FIT_V1`, no-store responses, structured explanations, bounded-analysis refusal, and no score persistence
 - Phase 5D complete: authenticated Jobs-integrated frontend workflow for exact-snapshot requirement review, explicit evidence linking, server-authoritative support and coverage presentation, neutral gaps and contradictions, optimistic-conflict recovery, accessibility coverage, and no browser persistence
-- Phase 5E Complete   : real-browser fit-analysis workflow, isolation, conflict, CSRF/session, privacy, diagnostics, ordering, and release-readiness verification
+- Phase 5E complete: real-browser fit-analysis workflow, isolation, conflict, CSRF/session, privacy, diagnostics, ordering, and release-readiness verification
 
 ## Phase 6 — Truthful document tailoring
 
-- Proposal and evidence model
-- Before/after review and approval
-- DOCX fidelity spike, export, and regression tests
+- Phase 6A complete: owner-scoped proposal/evidence foundation with exact source version and checksum.
+- Phase 6B complete: explicit wording review, attestation, rejection and historical attribution.
+- Phase 6C complete: authenticated manual proposal review workspace.
 - Phase 6D rendering verification remains open: no local renderer is available; see the [fidelity matrix](docx-fidelity-matrix.md).
 - Phase 6E implementation: single-proposal DOCX download with actual source-target review, fresh resolved-target attestation, V13 binding, final transactional revalidation, and inherited bounded replacement rules. Rendering verification is incomplete; Phase 6E is not marked complete.
-- Phase 6F tailoring browser security and release verification remains pending. Phase 6 remains open.
+- Phase 6F in progress: independent tailoring browser security/download tests and documentation reconciliation. See [release verification](security/phase-6-verification.md). Rendering, final local stability evidence, and hosted CI for the resulting commit must pass before closure. Phase 6 remains open; Phase 7 has not started.
 
 ## Phase 7 — Optional AI assistance
 

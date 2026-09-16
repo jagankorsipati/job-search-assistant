@@ -1,5 +1,9 @@
 # Architecture Decision Records
 
+## Phase 6 release status, 2026-09-14
+
+ADR-016 through ADR-019 remain historical decisions. ADR-019 implements ephemeral single-proposal download and supersedes ADR-018's proposed persisted export publication, not its supported-edit boundaries. Rendering and release gates remain open; see [Phase 6 evidence](../security/phase-6-verification.md).
+
 ADRs record consequential decisions and their tradeoffs. Accepted decisions are changed by a new superseding ADR rather than rewriting history.
 
 | ADR                                                      | Decision                                                    | Status   |

@@ -1,5 +1,9 @@
 # DOCX Fidelity Spike Verification
 
+## Phase 6F inspection, 2026-09-14
+
+No subsequent reproducible rendering evidence or installed Word/LibreOffice renderer was found. The browser release spec inspects actual downloaded bytes structurally, not visually. Renderer/font versions, page counts, shorter/longer reflow and page-boundary defects remain unverified. Phase 6 stays open; see [release verification](security/phase-6-verification.md). Historical phase results below are not evidence for the resulting Phase 6F commit.
+
 ## Scope and reproducibility
 
 Phase 6D implements a test-scoped byte-snapshot replacement experiment. No production document is read or edited. Fixtures are generated from synthetic OOXML in `DocxSpikeFixtures`; no binary fixtures or generated exports/renders are committed.
@@ -53,4 +57,4 @@ On 2026-09-11, inspection found no `soffice`/`libreoffice` command, LibreOffice 
 
 **Fidelity verification is incomplete. Phase 6D must remain open.** Structural evidence supports a narrow candidate approach only. Once a local renderer is available, render all 21 synthetic files, record renderer/build, OS, actual fonts and substitutions, inspect every page for clipping/overlap/wrapping/section/header/footer changes, and record before/after page counts. A second comparison in the target Word version is required before claiming Word fidelity. Do not treat browser HTML or extracted text as DOCX layout evidence.
 
-The proposed export constraints and approval/anchor implications are recorded in [ADR-018](decisions/ADR-018-bounded-docx-replacement-and-export-design.md). Controlled export and tailoring browser security/release verification remain pending.
+The historical export constraints and approval/anchor implications are recorded in [ADR-018](decisions/ADR-018-bounded-docx-replacement-and-export-design.md). ADR-019 implements ephemeral controlled export. Rendered-layout and final tailoring release verification remain open; consult the dated Phase 6F status above instead of interpreting historical milestone exclusions as current capability limits.

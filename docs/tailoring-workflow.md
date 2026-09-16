@@ -1,5 +1,9 @@
 # Resume tailoring review workspace
 
+## Phase 6 release status
+
+The implementation includes ephemeral single-proposal DOCX download; it is not a persisted export library. Ordinary wording approval is insufficient: actual-target review, fresh target/experience attestation, and deliberate download are separate actions. Rendering and Phase 6F final verification remain open. The dated [verification record](security/phase-6-verification.md) supersedes historical milestone-only scope statements below.
+
 ## Controlled DOCX download
 
 For a saved proposal, choose **Review actual DOCX target**. Only a unique complete paragraph in the main DOCX body with supported run formatting can be resolved. Review shows extracted source text, the intended replacement, location, source checksum/version, and linked confirmed facts. Free-form target references and user-supplied original text alone never authorize replacement.

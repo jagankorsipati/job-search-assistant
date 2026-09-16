@@ -1,5 +1,9 @@
 # Household deployment security checklist
 
+## Phase 6 release status, 2026-09-14
+
+Before release, close fixture/API-export rendering, exact-commit hosted CI, target-host export memory/concurrency, private storage, proxy no-store headers and no-payload logging gates. Rendering and release gates remain open; see [Phase 6 evidence](phase-6-verification.md).
+
 This is a future Raspberry Pi release gate, not evidence that deployment has occurred.
 
 - [ ] Terminate validated HTTPS before using the browser flow; keep `SESSION_COOKIE_SECURE=true`.

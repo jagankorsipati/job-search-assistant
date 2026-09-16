@@ -121,7 +121,7 @@ jobs:
         run: docker compose down --remove-orphans
 
   browser-e2e:
-    name: Browser identity, profile, base resume, job, and application security verification
+    name: Browser identity, profile, jobs, fit, and tailoring security verification
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

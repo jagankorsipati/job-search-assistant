@@ -1,5 +1,9 @@
 # V1 Non-Goals
 
+## Phase 6 release status, 2026-09-14
+
+Phase 6 does not add automatic drafting, semantic verification, broad DOCX support, batch proposal combination, retained generated files, or submission. Exact paragraph resolution is not fact extraction. Rendering and release gates remain open; see [Phase 6 evidence](security/phase-6-verification.md).
+
 V1 will not:
 
 - Submit applications or accept terms on a user's behalf.

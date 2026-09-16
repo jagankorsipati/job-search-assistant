@@ -1,5 +1,9 @@
 # Résumé Integrity Policy
 
+## Phase 6 release status, 2026-09-14
+
+Current exports replace one exact unique supported whole DOCX body paragraph with consistently formatted runs. Missing, ambiguous, unsupported and stale targets refuse. Wording-only approval cannot authorize replacement. Target-bound approval binds source location and exact proposal/source/fact versions; final transactional revalidation authorizes release after generation outside locks. Output is separate and ephemeral, not independently verified or permission to submit. Rendering and release gates remain open; see [Phase 6 evidence](security/phase-6-verification.md).
+
 ## Non-negotiable rule
 
 Phase 6E requires fresh attestation to an actual resolved DOCX location and exact replacement before download. Legacy wording-only approval never grants export authority. The service rechecks current proposal, latest approval, pinned source and fact versions after generation, refusing stale or rejected state. Source-text matching proves only a document location, not the truth of claims or layout fidelity. Export changes one separate DOCX and does not authorize application submission. Rendering verification remains open; see [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md).

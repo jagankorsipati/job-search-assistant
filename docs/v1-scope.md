@@ -2,7 +2,9 @@
 
 V1 proves a safe end-to-end workflow for multiple household users.
 
-## Included
+## Planned V1 scope, not a current capability inventory
+
+Current implementation has manually confirmed facts, manual requirement/evidence review, deterministic fit scoring, manual tailoring proposals and bounded single-proposal DOCX downloads. Automatic extraction/suggestions, cover-letter drafting, bulk data export/deletion and household deployment below remain planned. See [Phase 6 gates](security/phase-6-verification.md).
 
 - Local household accounts and authenticated sessions
 - Per-user candidate profile and verified career facts

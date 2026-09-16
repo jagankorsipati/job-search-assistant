@@ -30,13 +30,16 @@ Modules communicate through application interfaces, not direct access to another
 
 ## Primary workflow
 
+The diagram is conceptual: the implemented flow separates ordinary wording approval from actual-target review and target-bound attestation. Only the latter can authorize one ephemeral DOCX response after final transactional revalidation. Documents generates outside locks and reacquires owner-scoped source/proposal/fact/decision locks before releasing validated bytes; no generated file is retained. AI/provider arrows describe future scope, not active network calls. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) and [release gates](security/phase-6-verification.md).
+
 ```mermaid
 flowchart TD
-    A["Verified profile"] --> C["Capture job"]
+    A["Owner-confirmed profile"] --> C["Capture job"]
     C --> F["Explain fit and gaps"]
     F --> P["Propose document changes"]
-    P --> R{"User approves?"}
-    R -->|Yes| E["Export document"]
+    P --> R{"Wording review and attestation"}
+    R -->|Yes| T["Actual-target review and attestation"]
+    T --> E["Deliberate revalidated DOCX download"]
     R -->|No| P
 ```
 

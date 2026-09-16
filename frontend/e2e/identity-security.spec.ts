@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 const adminLogin = process.env.E2E_ADMIN_LOGIN ?? 'e2e.admin';
 const adminPassword = process.env.E2E_ADMIN_PASSWORD;
 const memberPassword = process.env.E2E_MEMBER_PASSWORD;
+const memberLogin = `e2e.member.${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 if (!adminPassword || !memberPassword) {
   throw new Error('The E2E runner must provide process-scoped test credentials.');
@@ -118,7 +119,7 @@ test('real browser identity lifecycle preserves security boundaries', async ({
   ).toBeFalsy();
 
   await acceptancePage.getByLabel('Display name').fill('E2E Household Member');
-  await acceptancePage.getByLabel('Login name').fill('e2e.member');
+  await acceptancePage.getByLabel('Login name').fill(memberLogin);
   await acceptancePage.getByLabel('Password', { exact: true }).fill(memberPassword);
   await acceptancePage.getByLabel('Confirm password').fill(memberPassword);
   await acceptancePage.getByRole('button', { name: 'Create account' }).click();
@@ -155,7 +156,7 @@ test('real browser identity lifecycle preserves security boundaries', async ({
 
   const memberContextOne = await browser.newContext();
   const memberPageOne = await memberContextOne.newPage();
-  await login(memberPageOne, 'e2e.member', memberPassword);
+  await login(memberPageOne, memberLogin, memberPassword);
   await memberPageOne.reload();
   await expect(memberPageOne.getByText('Signed in as member')).toBeVisible();
   await assertNoIdentityStorage(memberPageOne);
@@ -174,10 +175,10 @@ test('real browser identity lifecycle preserves security boundaries', async ({
 
   const memberContextTwo = await browser.newContext();
   const memberPageTwo = await memberContextTwo.newPage();
-  await login(memberPageTwo, 'e2e.member', memberPassword);
+  await login(memberPageTwo, memberLogin, memberPassword);
 
   await adminPage.goto('/admin/accounts');
-  const memberCard = adminPage.getByRole('listitem').filter({ hasText: 'e2e.member' });
+  const memberCard = adminPage.getByRole('listitem').filter({ hasText: memberLogin });
   await expect(memberCard).toBeVisible();
   adminPage.once('dialog', (dialog) => dialog.accept());
   await memberCard.getByRole('button', { name: 'Disable member' }).click();
@@ -188,7 +189,7 @@ test('real browser identity lifecycle preserves security boundaries', async ({
   const disabledContext = await browser.newContext();
   const disabledPage = await disabledContext.newPage();
   await disabledPage.goto('/login');
-  await disabledPage.getByLabel('Login name').fill('e2e.member');
+  await disabledPage.getByLabel('Login name').fill(memberLogin);
   await disabledPage.getByLabel('Password').fill(memberPassword);
   await disabledPage.getByRole('button', { name: 'Sign in' }).click();
   await expect(disabledPage.getByRole('alert')).toHaveText('Login name or password is incorrect.');
@@ -198,7 +199,7 @@ test('real browser identity lifecycle preserves security boundaries', async ({
   await expect(memberCard.getByText('ACTIVE')).toBeVisible();
   expect(await meStatus(memberPageOne)).toBe(401);
   expect(await meStatus(memberPageTwo)).toBe(401);
-  await login(disabledPage, 'e2e.member', memberPassword);
+  await login(disabledPage, memberLogin, memberPassword);
 
   const oldCookie = (await disabledContext.cookies()).find(
     (cookie) => cookie.name === 'JSA_SESSION',

@@ -2,6 +2,8 @@
 
 ## Status
 
+Verification note, 2026-09-14: the decision below retains its historical milestone scope. Current implementation includes ADR-019's ephemeral single-proposal download; ordinary wording approval is not target-bound approval, and editing a proposal cannot retarget a replaced source. Rendering and final Phase 6F/hosted-CI gates remain open in the [release record](../security/phase-6-verification.md). No Word-fidelity claim is supported.
+
 Accepted for the test-scoped experiment and future export constraints. Layout fidelity verification is incomplete; production export remains pending.
 
 ## Context and evidence

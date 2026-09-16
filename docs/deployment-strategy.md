@@ -1,5 +1,9 @@
 # Deployment Strategy
 
+## Phase 6 release status, 2026-09-14
+
+Implemented local DOCX downloads do not establish household deployment readiness. Rendering, exact-commit hosted CI, target-host performance and backup/restore evidence remain independent gates. Ephemeral output is not backed up as a server artifact; source storage, database and approval attribution remain sensitive. Rendering and release gates remain open; see [Phase 6 evidence](security/phase-6-verification.md).
+
 ## Environments
 
 - **Local development:** frontend, backend, and PostgreSQL on a developer machine

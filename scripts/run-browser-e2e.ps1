@@ -1,5 +1,8 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateSet('Suite', 'Matrix', 'Tailoring', 'Profile')]
+    [string]$VerificationMode = 'Suite'
+)
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -112,8 +115,12 @@ function Write-SafeDiagnostics {
     if (Test-Path -LiteralPath $rawPlaywrightRoot) {
         $safePlaywrightLines = Get-ChildItem -LiteralPath $rawPlaywrightRoot -Recurse -File -Filter 'error-context.md' |
             ForEach-Object { Get-Content -LiteralPath $_.FullName } |
-            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security|job-application-security|fit-analysis-security)\.spec\.ts)' } |
+            Where-Object { $_ -match '^\s*(Error:|Locator:|Expected:|Timeout:|at .+(identity-security|profile-security|job-application-security|fit-analysis-security|tailoring-security)\.spec\.ts)' } |
             ForEach-Object {
+                if ($_ -notmatch '^\s*at .+(identity-security|profile-security|job-application-security|fit-analysis-security|tailoring-security)\.spec\.ts') {
+                    '[assertion failure details omitted to protect private content]'
+                    return
+                }
                 $_ -replace '#invite=[^\s"'']+', '#invite=[REDACTED]' `
                    -replace '(?i)\b[\w .-]+\.(pdf|docx)\b', '[REDACTED-FILENAME]' `
                    -replace '\b[0-9a-f]{64}\b', '[REDACTED-DIGEST]' `
@@ -158,13 +165,16 @@ function Start-Backend {
     $env:BASE_RESUME_STORAGE_ROOT = $resumeStorageRoot
     # E2E-only: the Playwright suite's specs each authenticate the one shared
     # administrator account (invitations, cross-owner checks), which can
-    # legitimately exceed the production per-login-name rate limit within a
-    # single 15-minute window once specs run back to back or are re-run for
-    # order-independence verification. This override is process-scoped to
-    # this disposable backend only; application.properties keeps the shipped
-    # production default unchanged (see LoginRateLimiterProductionDefaultsTests).
-    $env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS = '50'
-    $env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS = '200'
+    # legitimately exceed the production login/source rate limits within a
+    # single 15-minute window once specs run back to back, in reverse order,
+    # and through repeated full-suite stability passes. This override is
+    # process-scoped to this disposable backend only; application.properties
+    # keeps the shipped production default unchanged (see
+    # LoginRateLimiterProductionDefaultsTests).
+    $env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS = '100'
+    $env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS = '1000'
+    $env:CSRF_RATE_LIMIT_SOURCE_ATTEMPTS = '5000'
+    $env:INVITATION_ACCEPT_RATE_LIMIT_SOURCE_ATTEMPTS = '1000'
     $env:IDENTITY_BOOTSTRAP_ENABLED = $Bootstrap.ToString().ToLowerInvariant()
     if ($Bootstrap) {
         $env:IDENTITY_BOOTSTRAP_LOGIN = 'e2e.admin'
@@ -176,7 +186,7 @@ function Start-Backend {
     }
     $startParameters = @{
         FilePath = 'java'
-        ArgumentList = @('-jar', $jarPath)
+        ArgumentList = @('-jar', $jarPath, '--debug=false', '--logging.level.root=INFO', '--logging.level.org.springframework=INFO')
         WorkingDirectory = $backendRoot
         RedirectStandardOutput = $StandardOutput
         RedirectStandardError = $StandardError
@@ -210,6 +220,10 @@ try {
     Write-Host 'Committed active administrator row observed.' -ForegroundColor Cyan
     Stop-Process -Id $backendProcess.Id -Force
     $backendProcess.WaitForExit()
+    Write-Host 'Restarting disposable PostgreSQL with retained migration/account data.' -ForegroundColor Cyan
+    Invoke-Checked 'docker' @('compose', '-p', $projectName, '-f', $composeFile, 'restart', 'postgres-e2e') $repositoryRoot
+    Invoke-Checked 'docker' @('compose', '-p', $projectName, '-f', $composeFile, 'up', '-d', '--wait') $repositoryRoot
+    if ((Get-AdministratorCount) -ne 1) { throw 'Disposable retained-volume account verification failed.' }
     Write-Host 'Restarting backend with bootstrap disabled.' -ForegroundColor Cyan
     $backendProcess = Start-Backend $false $backendOutput $backendError
     Wait-HttpReady 'http://127.0.0.1:8080/actuator/health' $backendProcess
@@ -229,8 +243,44 @@ try {
     $frontendProcess = Start-Process @startParameters
     Wait-HttpReady 'http://127.0.0.1:5173' $frontendProcess
 
-    Write-Host 'Running Playwright identity, profile, base resume, job, application, and fit-analysis security journeys.' -ForegroundColor Cyan
-    Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
+    Write-Host 'Running Playwright identity, profile, job, application, fit and tailoring security journeys.' -ForegroundColor Cyan
+    if ($VerificationMode -eq 'Tailoring') {
+        Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', 'tailoring-security.spec.ts') $frontendRoot
+    }
+    elseif ($VerificationMode -eq 'Profile') {
+        Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', 'profile-security.spec.ts') $frontendRoot
+    }
+    elseif ($VerificationMode -eq 'Matrix') {
+        $specs = @('fit-analysis-security.spec.ts', 'identity-security.spec.ts', 'job-application-security.spec.ts', 'profile-security.spec.ts', 'tailoring-security.spec.ts')
+        foreach ($spec in $specs) {
+            if ($spec -eq 'tailoring-security.spec.ts') {
+                foreach ($case in @('tailoring security:', 'tailoring lifecycle:', 'tailoring targets:')) {
+                    Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', $spec, '--grep', $case) $frontendRoot
+                }
+            }
+            else {
+                Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', $spec) $frontendRoot
+            }
+        }
+        [array]::Reverse($specs)
+        foreach ($spec in $specs) {
+            if ($spec -eq 'tailoring-security.spec.ts') {
+                foreach ($case in @('tailoring targets:', 'tailoring lifecycle:', 'tailoring security:')) {
+                    Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', $spec, '--grep', $case) $frontendRoot
+                }
+            }
+            else {
+                Invoke-Checked $npmExecutable @('run', 'test:e2e', '--', $spec) $frontendRoot
+            }
+        }
+        for ($pass = 1; $pass -le 3; $pass++) {
+            Write-Host "Full-suite stability pass $pass of 3."
+            Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
+        }
+    }
+    else {
+        Invoke-Checked $npmExecutable @('run', 'test:e2e') $frontendRoot
+    }
     $succeeded = $true
 }
 catch {
@@ -245,7 +295,8 @@ finally {
     }
     Remove-Item Env:E2E_ADMIN_PASSWORD, Env:E2E_MEMBER_PASSWORD, Env:IDENTITY_BOOTSTRAP_ENABLED, `
         Env:IDENTITY_BOOTSTRAP_LOGIN, Env:IDENTITY_BOOTSTRAP_DISPLAY_NAME, Env:IDENTITY_BOOTSTRAP_PASSWORD, `
-        Env:BASE_RESUME_STORAGE_ROOT, Env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS, Env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS `
+        Env:BASE_RESUME_STORAGE_ROOT, Env:LOGIN_RATE_LIMIT_LOGIN_ATTEMPTS, Env:LOGIN_RATE_LIMIT_SOURCE_ATTEMPTS, `
+        Env:CSRF_RATE_LIMIT_SOURCE_ATTEMPTS, Env:INVITATION_ACCEPT_RATE_LIMIT_SOURCE_ATTEMPTS `
         -ErrorAction SilentlyContinue
     $previousErrorAction = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
@@ -259,4 +310,4 @@ finally {
     Remove-Item -LiteralPath $temporaryRoot -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-Write-Host 'Browser identity, profile, base resume, job, application, and fit-analysis E2E verification passed.' -ForegroundColor Green
+Write-Host 'Selected browser security verification passed.' -ForegroundColor Green
