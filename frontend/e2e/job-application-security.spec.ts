@@ -326,8 +326,14 @@ test('real browser job and application lifecycle, isolation, conflicts, csrf, an
   await memberPage.getByRole('button', { name: 'Archive', exact: true }).click();
   await expect(memberPage.getByText('Job archived.')).toBeVisible();
   await memberPage.getByRole('button', { name: 'Archived jobs' }).click();
+  const archivedSnapshotJob = memberPage
+    .getByRole('list', { name: 'Archived jobs' })
+    .getByRole('button')
+    .filter({ hasText: 'Phase4E Snapshot Company Updated' });
+  await expect(archivedSnapshotJob).toBeVisible();
+  await archivedSnapshotJob.click();
   await expect(
-    memberPage.getByRole('button', { name: /Phase4E Snapshot Company Updated/ }),
+    memberPage.getByRole('heading', { name: 'Phase4E Snapshot Company Updated' }),
   ).toBeVisible();
   memberPage.once('dialog', (dialog) => dialog.accept());
   await memberPage.getByRole('button', { name: 'Restore', exact: true }).click();
