@@ -1,8 +1,8 @@
 # Data Ownership
 
-## Phase 6 release status, 2026-09-14
+## Phase 6 release status, 2026-09-19
 
-Ownership applies across proposal CRUD, both reviews and approvals, and ephemeral download. Approval history remains owned and retained; draft deletion cannot erase it. No new persisted export resource or shared lookup exists. Source replacement keeps its row identity but changes version/checksum; existing proposals never silently retarget. Rendering and release gates remain open; see [Phase 6 evidence](security/phase-6-verification.md).
+Ownership applies across proposal CRUD, both reviews and approvals, and ephemeral download. Approval history remains owned and retained; draft deletion cannot erase it. No new persisted export resource or shared lookup exists. Source replacement keeps its row identity but changes version/checksum; existing proposals never silently retarget. Local rendering and release gates are complete for the current supported DOCX boundary; hosted CI for the resulting commit and target Word fidelity remain separate evidence. See [Phase 6 evidence](security/phase-6-verification.md).
 
 ## Sources of truth
 

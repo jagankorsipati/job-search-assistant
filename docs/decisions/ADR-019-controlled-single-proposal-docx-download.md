@@ -2,13 +2,13 @@
 
 ## Status
 
-Verification note, 2026-09-14: the decision below retains its historical milestone scope. Current implementation includes ADR-019's ephemeral single-proposal download; ordinary wording approval is not target-bound approval, and editing a proposal cannot retarget a replaced source. Rendering and final Phase 6F/hosted-CI gates remain open in the [release record](../security/phase-6-verification.md). No Word-fidelity claim is supported.
+Verification note, 2026-09-19: the decision below retains its historical milestone scope. Current implementation includes ADR-019's ephemeral single-proposal download; ordinary wording approval is not target-bound approval, and editing a proposal cannot retarget a replaced source. Local LibreOffice-container rendering evidence is recorded in the [release record](../security/phase-6-verification.md) and [fidelity matrix](../docx-fidelity-matrix.md). No Microsoft Word-fidelity claim is supported.
 
-Accepted implementation design. Phase 6E rendering verification is incomplete; Phase 6F release checks remain pending.
+Accepted implementation design. Local Phase 6E/6F rendering and browser release checks are complete for the current supported DOCX boundary; hosted CI for the resulting commit remains pending until pushed.
 
 ## Scope and evidence
 
-ADR-018's whole-paragraph replacement engine is promoted unchanged into the internal Documents module, with an additional result exposing the actual extracted paragraph text. Synthetic fixtures retain the same supported edits, refusals, archive/XML limits, and preservation assertions. No document-processing dependency is added. No local renderer is available, as reconfirmed by the owner; structural evidence does not prove layout or Word fidelity.
+ADR-018's whole-paragraph replacement engine is promoted unchanged into the internal Documents module, with an additional result exposing the actual extracted paragraph text. Synthetic fixtures retain the same supported edits, refusals, archive/XML limits, and preservation assertions. No document-processing dependency is added. Local rendered evidence now covers the current supported boundary in a disposable LibreOffice container; structural evidence alone still does not prove layout or Word fidelity.
 
 One saved proposal produces one separate DOCX. There is no batch combination, source overwrite, AI, external fetch, or application submission.
 
@@ -42,4 +42,4 @@ The frontend keeps private data and tokens in memory, requires an initially unch
 
 ## Open gates
 
-The [fidelity matrix](../docx-fidelity-matrix.md) still has no rendered evidence. Neither Phase 6D nor Phase 6E is marked complete. Representative generated files require local rendering and page inspection before closing those gates. Phase 6F must cover the full tailoring browser security/download journey, diagnostics, resource limits, and release readiness. Exported claims remain owner-attested, not independently verified.
+The [fidelity matrix](../docx-fidelity-matrix.md) now records local LibreOffice-container rendering for all synthetic fixture outputs and representative actual HTTP exports. Phase 6F covers the full tailoring browser security/download journey, diagnostics, resource limits, and release readiness. Exported claims remain owner-attested, not independently verified. Target Microsoft Word fidelity and hosted CI for the resulting commit remain separate evidence.

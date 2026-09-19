@@ -56,9 +56,9 @@ Each milestone should be independently reviewable and committable.
 - Phase 6A complete: owner-scoped proposal/evidence foundation with exact source version and checksum.
 - Phase 6B complete: explicit wording review, attestation, rejection and historical attribution.
 - Phase 6C complete: authenticated manual proposal review workspace.
-- Phase 6D rendering verification remains open: no local renderer is available; see the [fidelity matrix](docx-fidelity-matrix.md).
-- Phase 6E implementation: single-proposal DOCX download with actual source-target review, fresh resolved-target attestation, V13 binding, final transactional revalidation, and inherited bounded replacement rules. Rendering verification is incomplete; Phase 6E is not marked complete.
-- Phase 6F in progress: independent tailoring browser security/download tests and documentation reconciliation. See [release verification](security/phase-6-verification.md). Rendering, final local stability evidence, and hosted CI for the resulting commit must pass before closure. Phase 6 remains open; Phase 7 has not started.
+- Phase 6D complete locally: bounded DOCX replacement spike has structural tests plus rendered LibreOffice evidence for all 21 synthetic fixture outputs; see the [fidelity matrix](docx-fidelity-matrix.md).
+- Phase 6E complete locally: single-proposal DOCX download with actual source-target review, fresh resolved-target attestation, V13 binding, final transactional revalidation, inherited bounded replacement rules, and rendered HTTP export evidence.
+- Phase 6F complete locally: independent tailoring browser security/download tests, repeated browser stability matrix, full foundation verifier, release documentation reconciliation, and rendered-layout verification are complete. Hosted CI for the resulting documentation/test-hook commit remains pending until pushed and verified. Phase 7 has not started.
 
 ## Phase 7 — Optional AI assistance
 

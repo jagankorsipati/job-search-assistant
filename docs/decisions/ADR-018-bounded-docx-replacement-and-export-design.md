@@ -2,9 +2,9 @@
 
 ## Status
 
-Verification note, 2026-09-14: the decision below retains its historical milestone scope. Current implementation includes ADR-019's ephemeral single-proposal download; ordinary wording approval is not target-bound approval, and editing a proposal cannot retarget a replaced source. Rendering and final Phase 6F/hosted-CI gates remain open in the [release record](../security/phase-6-verification.md). No Word-fidelity claim is supported.
+Verification note, 2026-09-19: the decision below retains its historical milestone scope. Current implementation includes ADR-019's ephemeral single-proposal download; ordinary wording approval is not target-bound approval, and editing a proposal cannot retarget a replaced source. Local LibreOffice-container rendering evidence is recorded in the [release record](../security/phase-6-verification.md) and [fidelity matrix](../docx-fidelity-matrix.md). No Microsoft Word-fidelity claim is supported.
 
-Accepted for the test-scoped experiment and future export constraints. Layout fidelity verification is incomplete; production export remains pending.
+Accepted for the test-scoped experiment and future export constraints. Local layout fidelity verification for the current supported boundary was completed later on 2026-09-19; target Word fidelity remains a separate check.
 
 ## Context and evidence
 
@@ -12,7 +12,7 @@ ADR-016 pins proposals to source resume ID, version, and checksum because replac
 
 The repository has no existing OOXML editing dependency. The experiment uses Java 21 `ZipFile`, `ZipInputStream`, namespace-aware DOM, and identity XML serialization. No dependency, runtime service, public endpoint, schema, or frontend is added. A high-level document library is not needed to test this single-paragraph operation. Avoiding whole-document object-model reconstruction also lets tests compare every unrelated part's expanded bytes exactly. This is a narrow engineering choice, not a claim that JDK APIs implement the complete OOXML standard or replace a layout engine.
 
-Reproducible tests exercise plain and styled paragraphs, identical-format text split across runs, bullets and numbering, unrelated tables/header/footer/hyperlink/section/field/tracked-change/text-box content, and shorter/longer/page-boundary fixtures. See [fidelity matrix](../docx-fidelity-matrix.md). Structural checks have passed. Word/LibreOffice are unavailable in the inspected local environment; no rendered layout, pagination, clipping, or font-substitution claim is supported.
+Reproducible tests exercise plain and styled paragraphs, identical-format text split across runs, bullets and numbering, unrelated tables/header/footer/hyperlink/section/field/tracked-change/text-box content, and shorter/longer/page-boundary fixtures. See [fidelity matrix](../docx-fidelity-matrix.md). Structural checks have passed. A disposable LibreOffice container rendered all current supported fixture variants on 2026-09-19; target Word-version fidelity remains unproven.
 
 ## Supported experimental operation
 

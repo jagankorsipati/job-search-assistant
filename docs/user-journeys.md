@@ -14,7 +14,7 @@ The user reviews requirements and explicitly links eligible candidate evidence. 
 
 ## 4. Tailor my résumé
 
-The user manually authors a proposal pinned to the exact source resume ID/version/checksum and selects confirmed facts. Before/after wording approval does not authorize export. A separate actual-target review resolves a unique supported whole DOCX body paragraph; fresh target-bound attestation and a deliberate download request produce one separate ephemeral DOCX after final version checks. The source is unchanged. No suggestions are generated. Visual fidelity remains unverified; see [Phase 6 gates](security/phase-6-verification.md).
+The user manually authors a proposal pinned to the exact source resume ID/version/checksum and selects confirmed facts. Before/after wording approval does not authorize export. A separate actual-target review resolves a unique supported whole DOCX body paragraph; fresh target-bound attestation and a deliberate download request produce one separate ephemeral DOCX after final version checks. The source is unchanged. No suggestions are generated. Local LibreOffice-container visual evidence covers the current supported boundary; see [Phase 6 gates](security/phase-6-verification.md).
 
 ## 5. Draft a cover letter
 

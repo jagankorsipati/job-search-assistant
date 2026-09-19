@@ -1,8 +1,8 @@
 # Architecture Decision Records
 
-## Phase 6 release status, 2026-09-14
+## Phase 6 release status, 2026-09-19
 
-ADR-016 through ADR-019 remain historical decisions. ADR-019 implements ephemeral single-proposal download and supersedes ADR-018's proposed persisted export publication, not its supported-edit boundaries. Rendering and release gates remain open; see [Phase 6 evidence](../security/phase-6-verification.md).
+ADR-016 through ADR-019 remain historical decisions. ADR-019 implements ephemeral single-proposal download and supersedes ADR-018's proposed persisted export publication, not its supported-edit boundaries. Local Phase 6 release gates, including LibreOffice-container rendered evidence for the supported DOCX boundary, are complete; target Word fidelity and hosted CI for the resulting commit remain separate evidence. See [Phase 6 evidence](../security/phase-6-verification.md).
 
 ADRs record consequential decisions and their tradeoffs. Accepted decisions are changed by a new superseding ADR rather than rewriting history.
 
@@ -25,5 +25,5 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-015](ADR-015-deterministic-fit-scoring-policy.md) | Use deterministic fit scoring policy | Accepted |
 | [ADR-016](ADR-016-truthful-resume-tailoring-proposal-foundation.md) | Establish truthful resume tailoring proposal foundation | Accepted |
 | [ADR-017](ADR-017-resume-tailoring-review-and-approval-integrity.md) | Require explicit resume tailoring review and approval integrity | Accepted |
-| [ADR-018](ADR-018-bounded-docx-replacement-and-export-design.md) | Bound the DOCX experiment and define future anchor/export gates; layout evidence pending | Accepted |
-| [ADR-019](ADR-019-controlled-single-proposal-docx-download.md) | Require resolved-target approval and final download revalidation; rendering pending | Accepted |
+| [ADR-018](ADR-018-bounded-docx-replacement-and-export-design.md) | Bound the DOCX experiment and define future anchor/export gates; local LibreOffice layout evidence recorded | Accepted |
+| [ADR-019](ADR-019-controlled-single-proposal-docx-download.md) | Require resolved-target approval and final download revalidation; local rendering evidence recorded | Accepted |

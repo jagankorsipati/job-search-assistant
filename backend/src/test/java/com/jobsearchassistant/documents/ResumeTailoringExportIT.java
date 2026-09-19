@@ -207,6 +207,19 @@ class ResumeTailoringExportIT {
                 .andExpect(status().isConflict()).andExpect(header().doesNotExist("Content-Disposition"));
     }
 
+    @Test void writesVisualVerificationHttpExportsWhenRequested() throws Exception {
+        if (!Boolean.getBoolean("docx.export.fixtures")) return;
+        Path output = Path.of("target", "docx-http-export").toAbsolutePath();
+        Files.createDirectories(output);
+        writeHttpExport(output, "plain-short", DocxReplacementSpike.zip(parts(p(ORIGINAL))), SHORT);
+        writeHttpExport(output, "plain-long", DocxReplacementSpike.zip(parts(p(ORIGINAL))), LONG);
+        StringBuilder boundary = new StringBuilder();
+        for (int i = 0; i < 32; i++) boundary.append(p("Synthetic boundary filler line " + i));
+        byte[] pageBoundary = DocxReplacementSpike.zip(parts(boundary + p(ORIGINAL) + p("Trailing boundary sentinel")));
+        writeHttpExport(output, "page-boundary-short", pageBoundary, SHORT);
+        writeHttpExport(output, "page-boundary-long", pageBoundary, LONG);
+    }
+
     private String review() throws Exception {
         MvcResult result = mvc.perform(get(url("resolved-review")).param("expectedVersion", "0").cookie(member))
                 .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
@@ -223,6 +236,33 @@ class ResumeTailoringExportIT {
     private MockHttpServletRequestBuilder write(MockHttpServletRequestBuilder request, Cookie session) throws Exception {
         var csrf = body(mvc.perform(get("/api/auth/csrf").cookie(session)).andReturn());
         return request.cookie(session).header((String) csrf.get("headerName"), csrf.get("token")).contentType(MediaType.APPLICATION_JSON);
+    }
+    private void writeHttpExport(Path output, String name, byte[] sourceBytes, String proposedText) throws Exception {
+        UUID proposalId = UUID.randomUUID();
+        StoredBaseResume staged = storage.stage(new ByteArrayInputStream(sourceBytes), name + ".docx");
+        storage.publish(staged);
+        jdbc.update("UPDATE job_search_assistant.base_resume_document SET original_filename=?, media_type=?, byte_size=?, sha256_checksum=?, storage_key=?, version=0, updated_at=now() WHERE id=? AND owner_account_id=?",
+                name + ".docx", BaseResumeValidator.DOCX, sourceBytes.length, DocxReplacementSpike.sha(sourceBytes), staged.storageKey(), resume, owner);
+        MvcResult created = mvc.perform(write(post("/api/documents/resume-tailoring-proposals"), member)
+                .content(json.writeValueAsString(Map.of("sourceResumeDocumentId", resume, "sourceResumeVersion", 0,
+                        "sourceResumeSha256Checksum", DocxReplacementSpike.sha(sourceBytes), "targetSection", "SUMMARY",
+                        "targetReference", name, "originalText", ORIGINAL, "proposedText", proposedText,
+                        "evidence", List.of(Map.of("careerFactId", fact)))))).andExpect(status().isCreated()).andReturn();
+        proposalId = UUID.fromString((String) body(created).get("id"));
+        UUID previous = proposal;
+        proposal = proposalId;
+        try {
+            String revision = review();
+            approve(revision);
+            MvcResult exported = mvc.perform(write(post(url("export")), member).content(request(revision, true)))
+                    .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
+                    .andExpect(header().string("Content-Type", BaseResumeValidator.DOCX))
+                    .andExpect(header().string("Content-Disposition", "attachment; filename=\"tailored-resume.docx\""))
+                    .andExpect(header().string("X-Content-Type-Options", "nosniff")).andReturn();
+            Files.write(output.resolve(name + ".docx"), exported.getResponse().getContentAsByteArray());
+        } finally {
+            proposal = previous;
+        }
     }
     private UUID account(String login, String role) {
         UUID id = UUID.randomUUID();

@@ -1,10 +1,10 @@
 # Security and Privacy
 
-## Phase 6 release status, 2026-09-14
+## Phase 6 release status, 2026-09-19
 
-Target-bound approval authorizes only a separately requested, revalidated single-proposal download. No generated output is persisted server-side. Browser tests use synthetic data and disposable downloads; CI retains only sanitized text diagnostics, never document contents, tokens, screenshots, traces or raw reports. Historical wording-approval exclusions do not negate the separate Phase 6E export boundary. Rendering and release gates remain open; see [Phase 6 evidence](security/phase-6-verification.md).
+Target-bound approval authorizes only a separately requested, revalidated single-proposal download. No generated output is persisted server-side. Browser tests use synthetic data and disposable downloads; CI retains only sanitized text diagnostics, never document contents, tokens, screenshots, traces or raw reports. Historical wording-approval exclusions do not negate the separate Phase 6E export boundary. Local LibreOffice-container rendering and release gates are complete for the current supported DOCX boundary; hosted CI for the resulting commit remains pending until pushed. See [Phase 6 evidence](security/phase-6-verification.md).
 
-Phase 6E adds owner-scoped resolved-target review/approval and single-proposal DOCX download. POST operations require CSRF; all responses are no-store. Complete bounded output is validated before response construction, and final transactional revalidation authorizes release after generation. The original stored resume is never overwritten. New request/review DTO string representations are redacted; download resources expose neither storage paths nor bytes in debug descriptions. No generated artifact is persisted, and temporary source snapshots are removed on failure and success. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) for authorization, limits, and remaining rendering/release gates.
+Phase 6E adds owner-scoped resolved-target review/approval and single-proposal DOCX download. POST operations require CSRF; all responses are no-store. Complete bounded output is validated before response construction, and final transactional revalidation authorizes release after generation. The original stored resume is never overwritten. New request/review DTO string representations are redacted; download resources expose neither storage paths nor bytes in debug descriptions. No generated artifact is persisted, and temporary source snapshots are removed on failure and success. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) for authorization, limits, and rendered-verification evidence.
 
 ## Sensitive data
 

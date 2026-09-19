@@ -2,7 +2,7 @@
 
 ## Phase 6 release status
 
-The implementation includes ephemeral single-proposal DOCX download; it is not a persisted export library. Ordinary wording approval is insufficient: actual-target review, fresh target/experience attestation, and deliberate download are separate actions. Rendering and Phase 6F final verification remain open. The dated [verification record](security/phase-6-verification.md) supersedes historical milestone-only scope statements below.
+The implementation includes ephemeral single-proposal DOCX download; it is not a persisted export library. Ordinary wording approval is insufficient: actual-target review, fresh target/experience attestation, and deliberate download are separate actions. Local Phase 6F verification is complete for the current supported DOCX boundary, including LibreOffice-container rendering of synthetic fixtures and representative actual HTTP exports. The dated [verification record](security/phase-6-verification.md) supersedes historical milestone-only scope statements below.
 
 ## Controlled DOCX download
 
@@ -10,7 +10,7 @@ For a saved proposal, choose **Review actual DOCX target**. Only a unique comple
 
 Check the fresh, initially unchecked location/experience attestation and choose **Approve resolved change**. This appends an approval with a resolved-target binding; earlier wording-only approvals cannot authorize download. Reload the actual-target review after approval, then deliberately choose **Download tailored DOCX**. One proposal changes one separate DOCX; the original is untouched. Generation happens outside database locks, with final version/approval checks before release. Stale or unsupported operations return no attachment.
 
-Edits, source replacement, fact changes, rejection, or a different decision require fresh review and, when necessary, attestation. Unsaved editor values survive failures. The browser reports response received/download requested, not successful file saving, and revokes its temporary object URL. Layout fidelity remains unverified without a renderer. Rendering gates for 6D/6E and Phase 6F browser release checks remain open. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md).
+Edits, source replacement, fact changes, rejection, or a different decision require fresh review and, when necessary, attestation. Unsaved editor values survive failures. The browser reports response received/download requested, not successful file saving, and revokes its temporary object URL. LibreOffice-container layout evidence covers the current supported synthetic and HTTP-export cases; target Word fidelity remains a separate limitation. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md).
 
 Phase 6C adds `/profile/tailoring`, reached from Profile beside the base resume. The authenticated shell and shared CSRF/no-store client enforce the existing session model. Administrators use the same owner-scoped resources as members.
 
@@ -40,4 +40,4 @@ The committed approval service treated `approval_stale` as a permanent blocker, 
 
 Phase 6C verification passed: 85 backend fast tests, 79 PostgreSQL integration tests, all frontend format/lint/typecheck/build checks, and the full foundation verifier with four existing browser journeys. Final frontend recovery coverage brings the component/client suite to 71 passing tests. Packaged JAR inspection and diff checks passed; V1-V12 are unchanged. Disposable browser/Testcontainers resources are cleaned by their runners; developer volumes are preserved.
 
-Focused component/client tests exercise manual CRUD, evidence choice, attestation, exact tokens, stale/failed decisions, unsaved conflicts, decision history, session expiry, old responses, and private payload boundaries. The existing four foundation browser journeys remain unchanged in scope; their base-resume checksum assertion reflects the additive metadata contract. A dedicated tailoring browser security/release milestone remains open, along with the DOCX fidelity spike and controlled export.
+Focused component/client tests exercise manual CRUD, evidence choice, attestation, exact tokens, stale/failed decisions, unsaved conflicts, decision history, session expiry, old responses, and private payload boundaries. Phase 6F adds the dedicated tailoring browser security/download journey, repeated browser stability matrix, rendered DOCX verification, and documentation reconciliation. Generated DOCX/PDF/PNG evidence remains ignored and disposable.

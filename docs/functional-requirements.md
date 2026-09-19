@@ -99,6 +99,8 @@ Requirements describe intended behavior unless a milestone is explicitly identif
 - **FR-079:** Target-bound approval requires explicit initially unchecked attestation. Missing, ambiguous, unsupported, stale, rejected and ineligible cases refuse; changed approved wording/evidence requires fresh review. Exported claims remain owner-attested, not independently verified.
 - **FR-080:** Phase 6 release requires real-browser security/download verification, final-code ordering/stability checks, rendered synthetic/API-output layout evidence, sanitized artifacts and hosted CI for the actual commit. Implementation alone does not close these gates.
 
+As of 2026-09-19, the local FR-080 gates are satisfied for the current supported DOCX boundary with disposable LibreOffice rendering and browser/foundation evidence; hosted CI for the resulting documentation/test-output-hook commit remains pending until pushed.
+
 - **FR-050:** Users can export their structured data and documents.
 - **FR-051:** Users can delete their account data after explicit confirmation.
 - **FR-052:** Health endpoints reveal no personal information.
