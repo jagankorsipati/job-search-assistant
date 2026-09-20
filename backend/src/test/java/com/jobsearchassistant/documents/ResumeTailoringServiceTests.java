@@ -252,6 +252,9 @@ class ResumeTailoringServiceTests {
     }
 
     private static final class FakeRepository implements ResumeTailoringRepository {
+        public Optional<ResumeDraftingFact> findConfirmedDraftingFact(UUID owner, UUID fact) {
+            return Optional.empty();
+        }
         final Map<OwnerId, BaseResumeDocument> resumes = new HashMap<>();
         final Set<OwnerId> confirmedFacts = new HashSet<>();
         final Map<OwnerId, Long> factVersions = new HashMap<>();

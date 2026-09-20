@@ -41,6 +41,16 @@ class ModularArchitectureTests {
     }
 
     @Test
+    void draftingContractIsNamedAndIntegrationsCannotReachDomainModules() {
+        var contract = com.jobsearchassistant.integrations.drafting.GroundedDraftingProvider.class;
+        assertThat(contract.getPackage().getAnnotation(org.springframework.modulith.NamedInterface.class).value())
+                .containsExactly("drafting");
+        assertThat(modules.getModuleByName("integrations").orElseThrow().getDirectDependencies(modules).isEmpty()).isTrue();
+        assertThat(contract.getDeclaredMethods()).filteredOn(method -> !java.lang.reflect.Modifier.isStatic(method.getModifiers()))
+                .extracting(java.lang.reflect.Method::getName).containsExactly("suggest");
+    }
+
+    @Test
     void identityDomainRemainsInsideAnIndependentClosedModule() {
         var identity = modules.getModuleByName("identity").orElseThrow();
 

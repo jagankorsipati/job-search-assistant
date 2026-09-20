@@ -2,7 +2,9 @@
 
 ## Current implementation and release boundary
 
-Requirements describe intended behavior unless a milestone is explicitly identified. Phase 6 supports manual proposals and both ordinary and target-bound approvals. A separate deliberate export produces one ephemeral DOCX after final source/proposal/fact/decision revalidation, never overwriting the source. No AI, automatic suggestions, fact extraction, bulk export or submission is implemented. Historical 6A/B exclusions describe those milestone boundaries, not the present aggregate. General data export/deletion remains planned. See [Phase 6 verification](security/phase-6-verification.md).
+Requirements describe intended behavior unless a milestone is explicitly identified. Phase 6 supports manual proposals and both ordinary and target-bound approvals. A separate deliberate export produces one ephemeral DOCX after final source/proposal/fact/decision revalidation, never overwriting the source. No live AI drafting, automatic suggestions, fact extraction, bulk export or submission is implemented. Historical 6A/B exclusions describe those milestone boundaries, not the present aggregate. General data export/deletion remains planned. See [Phase 6 verification](security/phase-6-verification.md).
+
+Phase 7A adds internal optional AI contracts only; live AI drafting is not available. Manual Phase 6 workflows remain functional. See [ADR-020](decisions/ADR-020-optional-grounded-drafting-contracts.md).
 
 ## Identity and isolation
 
@@ -99,12 +101,20 @@ Requirements describe intended behavior unless a milestone is explicitly identif
 - **FR-079:** Target-bound approval requires explicit initially unchecked attestation. Missing, ambiguous, unsupported, stale, rejected and ineligible cases refuse; changed approved wording/evidence requires fresh review. Exported claims remain owner-attested, not independently verified.
 - **FR-080:** Phase 6 release requires real-browser security/download verification, final-code ordering/stability checks, rendered synthetic/API-output layout evidence, sanitized artifacts and hosted CI for the actual commit. Implementation alone does not close these gates.
 
-As of 2026-09-19, the local FR-080 gates are satisfied for the current supported DOCX boundary with disposable LibreOffice rendering and browser/foundation evidence; hosted CI for the resulting documentation/test-output-hook commit remains pending until pushed.
+Phase 6 is released as `v0.6.0-truthful-tailoring`; local FR-080 evidence covers the supported DOCX boundary with disposable LibreOffice rendering and browser/foundation verification. This release does not imply Phase 7 completion.
 
 - **FR-050:** Users can export their structured data and documents.
 - **FR-051:** Users can delete their account data after explicit confirmation.
 - **FR-052:** Health endpoints reveal no personal information.
 - **FR-053:** Backups and restores preserve user isolation.
+
+## Optional AI contracts (Phase 7A)
+
+- **FR-081:** One internal immutable drafting request contains only a selected paragraph, explicitly selected owner-confirmed fact contents with request-local aliases, and fixed bounded task instructions; no domain entity serialization, unrelated data, job context or private identifiers cross the provider boundary.
+- **FR-082:** Selection uses current actor ownership with no ADMIN bypass and safe foreign/nonexistent failures. Internal context binds exact proposal/source/evidence versions; changed or missing inputs refuse. Future import must atomically lock/revalidate that context before a deliberate draft update.
+- **FR-083:** Bounded provider draft text must reference known selected aliases. Malformed, oversized and unsupported-by-reference responses are invalid; structural checks do not prove every claim. Results never modify proposals/facts, approve content or authorize export.
+- **FR-084:** AI defaults to a disabled implementation; a deterministic fake exists only in tests. Typed failures and bounded future timeout/cancellation behavior preserve manual workflows. Phase 7A adds no adapter, SDK, network call, credentials, endpoint, frontend, migration, retry, cache or persistence.
+- **FR-085:** Future transmission requires explicit preview and consent for exact selected content, which can contain personal data and is not anonymized. Trusted instructions remain separate from untrusted text; no tools or secret access are allowed, delimiters are not a complete injection defense, and prompts/responses/evidence/mappings must never be logged.
 
 ## Quality attributes
 

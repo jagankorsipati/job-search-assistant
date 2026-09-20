@@ -28,6 +28,8 @@ flowchart TD
 
 Modules communicate through application interfaces, not direct access to another module's tables. External integrations sit behind ports so deterministic workflows remain testable.
 
+Phase 7A adds the Integrations `drafting` named interface with one immutable minimum-data request and a typed untrusted outcome. Documents prepares requests through its existing owner-scoped tailoring repository, extending its existing career-fact projection with selected confirmed content/version only. Its private in-memory binding retains exact owner/proposal/source/evidence revisions; the provider sees only a fixed task, paragraph, fact contents and local aliases. This follows the existing Documents repository read boundary rather than introducing a new cross-module domain dependency. The sole runtime provider is disabled; the deterministic fake is test-only. No manual workflow calls the drafting service. There is no endpoint, frontend, SDK, network transport, migration or suggestion import. AI contracts exist, but live AI drafting is not available. See [ADR-020](decisions/ADR-020-optional-grounded-drafting-contracts.md).
+
 ## Primary workflow
 
 The diagram is conceptual: the implemented flow separates ordinary wording approval from actual-target review and target-bound attestation. Only the latter can authorize one ephemeral DOCX response after final transactional revalidation. Documents generates outside locks and reacquires owner-scoped source/proposal/fact/decision locks before releasing validated bytes; no generated file is retained. AI/provider arrows describe future scope, not active network calls. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) and [release gates](security/phase-6-verification.md).

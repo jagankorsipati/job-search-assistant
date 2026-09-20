@@ -58,13 +58,12 @@ Each milestone should be independently reviewable and committable.
 - Phase 6C complete: authenticated manual proposal review workspace.
 - Phase 6D complete locally: bounded DOCX replacement spike has structural tests plus rendered LibreOffice evidence for all 21 synthetic fixture outputs; see the [fidelity matrix](docx-fidelity-matrix.md).
 - Phase 6E complete locally: single-proposal DOCX download with actual source-target review, fresh resolved-target attestation, V13 binding, final transactional revalidation, inherited bounded replacement rules, and rendered HTTP export evidence.
-- Phase 6F complete locally: independent tailoring browser security/download tests, repeated browser stability matrix, full foundation verifier, release documentation reconciliation, and rendered-layout verification are complete. Hosted CI for the resulting documentation/test-hook commit remains pending until pushed and verified. Phase 7 has not started.
+- Phase 6F complete; Phase 6 released as `v0.6.0-truthful-tailoring`. Independent tailoring browser security/download tests, repeated browser stability matrix, full foundation verifier, release documentation reconciliation, and rendered-layout verification cover the supported DOCX boundary.
 
 ## Phase 7 — Optional AI assistance
 
-- Replaceable provider interface
-- Minimum-data requests and prompt-injection defenses
-- Grounded drafting plus deterministic integrity validation
+- Phase 7A complete: internal single-paragraph grounded drafting contract, disabled runtime provider, deterministic test-only fake, minimum-data projections, owner-scoped local evidence aliases, exact revision binding and structural response validation. Focused tests, backend verify, full foundation verification, package inspection and disposable-resource cleanup passed; see the [verification record](security/phase-7a-verification.md). AI contracts exist; live AI drafting is not available. See [ADR-020](decisions/ADR-020-optional-grounded-drafting-contracts.md).
+- Phase 7 remains open: future adapter/provider/model and processing/privacy/cost decisions; exact-data preview/consent and cancellation UI; explicit suggestion import with transactional stale checks; claim-level integrity validation; security, browser and release verification. No provider/model or pricing is chosen in 7A.
 
 ## Phase 8 — Household deployment
 

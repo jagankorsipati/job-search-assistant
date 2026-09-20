@@ -62,6 +62,7 @@ class ResumeTailoringExportIT {
     @Autowired ObjectMapper json;
     @Autowired JdbcTemplate jdbc;
     @Autowired BaseResumeStorage storage;
+    @Autowired JdbcResumeTailoringRepository tailoringRepository;
     @MockitoSpyBean DocxExportEngine engine;
     Cookie member;
     Cookie other;
@@ -123,6 +124,28 @@ class ResumeTailoringExportIT {
         approve(revision);
         mvc.perform(write(post(url("reject")), member).content("{\"expectedVersion\":0}")).andExpect(status().isOk());
         mvc.perform(write(post(url("export")), member).content(request(revision, true))).andExpect(status().isConflict());
+    }
+
+    @Test void providerSuggestionNeitherAuthorizesExportNorChangesApprovedReplacement() throws Exception {
+        var drafting = new ResumeDraftingService(
+                () -> new com.jobsearchassistant.identity.api.AuthenticatedActor(owner,
+                        com.jobsearchassistant.identity.api.ActorRole.MEMBER),
+                tailoringRepository, new testfixture.drafting.DeterministicDraftingProvider());
+        var selected = List.of(new ResumeTailoringFactReference(fact, 0));
+        var prepared = drafting.prepare(proposal, 0, selected);
+        assertThat(drafting.suggest(prepared)).isInstanceOf(
+                com.jobsearchassistant.integrations.drafting.GroundedDraftingProvider.Draft.class);
+        String revision = review();
+        mvc.perform(write(post(url("export")), member).content(request(revision, true)))
+                .andExpect(status().isConflict()).andExpect(header().doesNotExist("Content-Disposition"));
+        approve(revision);
+        drafting.suggest(drafting.prepare(proposal, 0, selected));
+        MvcResult exported = mvc.perform(write(post(url("export")), member).content(request(revision, true)))
+                .andExpect(status().isOk()).andReturn();
+        var anchor = DocxReplacementSpike.resolve(source, DocxReplacementSpike.sha(source), ORIGINAL);
+        assertThat(exported.getResponse().getContentAsByteArray())
+                .isEqualTo(DocxReplacementSpike.replace(source, anchor, ORIGINAL, SHORT));
+        assertThat(tailoringRepository.findProposal(owner, proposal).orElseThrow().proposedText()).isEqualTo(SHORT);
     }
 
     @Test void isolatesOwnersAdminsAndAnonymousRequestsWithCsrfAndSafeResponses() throws Exception {

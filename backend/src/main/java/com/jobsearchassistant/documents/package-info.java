@@ -2,5 +2,5 @@
 @org.springframework.modulith.ApplicationModule(
         displayName = "Documents",
         type = org.springframework.modulith.ApplicationModule.Type.CLOSED,
-        allowedDependencies = "identity::actor")
+        allowedDependencies = {"identity::actor", "integrations::drafting"})
 package com.jobsearchassistant.documents;

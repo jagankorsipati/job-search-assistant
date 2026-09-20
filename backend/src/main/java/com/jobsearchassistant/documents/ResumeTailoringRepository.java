@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 interface ResumeTailoringRepository {
+    Optional<ResumeDraftingFact> findConfirmedDraftingFact(UUID ownerAccountId, UUID careerFactId);
+
     Optional<BaseResumeDocument> findBaseResume(UUID ownerAccountId, UUID resumeId);
 
     boolean confirmedCareerFactExists(UUID ownerAccountId, UUID careerFactId);

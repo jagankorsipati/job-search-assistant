@@ -2,7 +2,7 @@
 
 ## Phase 6 release status, 2026-09-19
 
-Target-bound approval authorizes only a separately requested, revalidated single-proposal download. No generated output is persisted server-side. Browser tests use synthetic data and disposable downloads; CI retains only sanitized text diagnostics, never document contents, tokens, screenshots, traces or raw reports. Historical wording-approval exclusions do not negate the separate Phase 6E export boundary. Local LibreOffice-container rendering and release gates are complete for the current supported DOCX boundary; hosted CI for the resulting commit remains pending until pushed. See [Phase 6 evidence](security/phase-6-verification.md).
+Phase 6 is released as `v0.6.0-truthful-tailoring`. Target-bound approval authorizes only a separately requested, revalidated single-proposal download. No generated output is persisted server-side. Browser tests use synthetic data and disposable downloads; CI retains only sanitized text diagnostics, never document contents, tokens, screenshots, traces or raw reports. Historical wording-approval exclusions do not negate the separate Phase 6E export boundary. Local LibreOffice-container rendering covers the current supported DOCX boundary. See [Phase 6 evidence](security/phase-6-verification.md).
 
 Phase 6E adds owner-scoped resolved-target review/approval and single-proposal DOCX download. POST operations require CSRF; all responses are no-store. Complete bounded output is validated before response construction, and final transactional revalidation authorizes release after generation. The original stored resume is never overwritten. New request/review DTO string representations are redacted; download resources expose neither storage paths nor bytes in debug descriptions. No generated artifact is persisted, and temporary source snapshots are removed on failure and success. See [ADR-019](decisions/ADR-019-controlled-single-proposal-docx-download.md) for authorization, limits, and rendered-verification evidence.
 
@@ -70,13 +70,15 @@ Résumés, contact details, work history, education, notes, job activity, creden
 
 ## AI privacy
 
-- AI integration is optional and disabled without configuration.
-- The UI identifies what data will leave the home system before a request.
-- Send the minimum required text; do not send entire document archives by default.
-- API credentials remain server-side.
+- Phase 7A AI contracts exist, but live AI drafting is not available. The sole runtime provider is disabled with no enable switch, endpoint, SDK, API credential or network call.
+- A future UI must preview the exact outgoing text and provider processing/retention information and obtain explicit per-request consent before transmission. No consent UI exists in 7A; configuration is not consent.
+- Send only the selected paragraph and explicitly selected owner-confirmed fact content, with fixed task instructions and request-local aliases. No full files, unrelated history, account IDs, login details, paths, checksums, approval tokens or credentials. Job context is omitted because this narrow task does not require it.
+- Selected free text may contain personal data. Evidence aliases do not anonymize it. Alias-to-record/version mappings remain internal and owner-scoped; ADMIN has no bypass.
 - Provider responses are treated as untrusted proposals.
-- Job descriptions are delimited as data to reduce prompt-injection risk.
+- Paragraph/fact text and any future selected job context are untrusted data, separated from trusted instructions. Delimiters are guidance, not a complete injection defense. Providers receive no tools, browsing, file access, code execution or secret access.
 - Imported or AI-generated career text is always draft. It cannot become confirmed or eligible for generated documents until the account owner explicitly attests that it is accurate.
+
+Phase 7A has bounded immutable request DTOs, redacted diagnostic strings, typed disabled/unavailable/timeout/cancelled/refused/invalid-response outcomes, and no logging of prompts, responses, selected text, evidence or sensitive mappings. No retries, cache or persistence exist. Future adapters must enforce the 30-second total deadline, abort on cancellation, discard late results and bound raw responses before parsing. Structural evidence-alias validation does not prove factual support. See [ADR-020](decisions/ADR-020-optional-grounded-drafting-contracts.md) for exact limits, freshness checks, future consent and adapter obligations.
 
 ## Candidate-profile privacy
 

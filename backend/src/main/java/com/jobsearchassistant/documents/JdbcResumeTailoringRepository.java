@@ -22,6 +22,17 @@ class JdbcResumeTailoringRepository implements ResumeTailoringRepository {
         this.jdbc = jdbc;
     }
 
+    public Optional<ResumeDraftingFact> findConfirmedDraftingFact(UUID ownerAccountId, UUID careerFactId) {
+        return jdbc.sql("""
+                SELECT version, factual_content
+                FROM job_search_assistant.career_fact
+                WHERE owner_account_id = :owner AND id = :id AND status = 'CONFIRMED'
+                """)
+                .param("owner", ownerAccountId).param("id", careerFactId)
+                .query((rs, row) -> new ResumeDraftingFact(rs.getLong("version"), rs.getString("factual_content")))
+                .optional();
+    }
+
     public Optional<BaseResumeDocument> findBaseResume(UUID ownerAccountId, UUID resumeId) {
         return jdbc.sql("""
                 SELECT id, owner_account_id, original_filename, media_type, byte_size, sha256_checksum,
