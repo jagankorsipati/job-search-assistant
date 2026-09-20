@@ -27,3 +27,5 @@ ADRs record consequential decisions and their tradeoffs. Accepted decisions are 
 | [ADR-017](ADR-017-resume-tailoring-review-and-approval-integrity.md) | Require explicit resume tailoring review and approval integrity | Accepted |
 | [ADR-018](ADR-018-bounded-docx-replacement-and-export-design.md) | Bound the DOCX experiment and define future anchor/export gates; local LibreOffice layout evidence recorded | Accepted |
 | [ADR-019](ADR-019-controlled-single-proposal-docx-download.md) | Require resolved-target approval and final download revalidation; local rendering evidence recorded | Accepted |
+| [ADR-020](ADR-020-optional-grounded-drafting-contracts.md) | Define optional grounded drafting contracts and privacy boundaries | Accepted |
+| [ADR-021](ADR-021-opt-in-grounded-drafting-adapter.md) | Add administrator-controlled OpenAI and Claude drafting adapters | Accepted |

@@ -6,7 +6,7 @@ A private, self-hosted household workspace for finding jobs, evaluating fit, tai
 
 ## Status
 
-Phase 6 is locally complete. Fit analysis uses manually confirmed requirements and explicit evidence links, separating support from review coverage. Tailoring supports manual drafts, owner-attested wording review, separate actual-target review and approval, deliberate ephemeral DOCX download, and LibreOffice-rendered evidence for the current supported DOCX boundary. No automatic fact extraction, suggestions, AI drafting, scraping, cover-letter generation, or application submission is implemented. See the [Phase 6 verification record](docs/security/phase-6-verification.md) for evidence and remaining hosted-CI/Word-fidelity gates.
+Phase 6 is released as `v0.6.0-truthful-tailoring`. Fit analysis uses manually confirmed requirements and explicit evidence links, separating support from review coverage. Tailoring supports manual drafts, owner-attested wording review, separate actual-target review and approval, deliberate ephemeral DOCX download, and LibreOffice-rendered evidence for the supported DOCX boundary. Phase 7 adds internal grounded-drafting contracts and optional administrator-controlled OpenAI/Claude adapters, disabled by default. Live user drafting, suggestion import and consent UI are not available. No automatic fact extraction, scraping, cover-letter generation or application submission is implemented. See the [roadmap](docs/roadmap.md) and [Phase 6 verification record](docs/security/phase-6-verification.md).
 
 ## Planned capabilities
 
@@ -44,6 +44,7 @@ Automated application submission and dependable LinkedIn scraping are not part o
 - [Deployment strategy](docs/deployment-strategy.md)
 - [Roadmap](docs/roadmap.md)
 - [Architecture decisions](docs/decisions/README.md)
+- [Optional AI configuration](docs/ai-drafting-configuration.md)
 
 ## Local development
 
@@ -228,4 +229,4 @@ GitHub Actions repeats these checks in parallel backend, frontend, PostgreSQL Co
 
 Controlled single-proposal DOCX download is implemented in the tailoring workspace. `GET /api/documents/resume-tailoring-proposals/{id}/resolved-review?expectedVersion=...` returns actual source text, intended replacement, location/source attribution, evidence versions, and `resolvedRevision`. `POST .../approve-resolved` requires `expectedVersion`, that revision, and explicit `attestedTargetAndExperience: true`. A separate `POST .../export` with expected version/revision returns a validated `tailored-resume.docx` attachment after final transactional checks. Legacy approval is insufficient; unsupported or stale targets refuse. No original file is overwritten or generated file persisted. See [ADR-019](docs/decisions/ADR-019-controlled-single-proposal-docx-download.md). Local LibreOffice-container rendering verified the supported synthetic fixtures and representative actual HTTP exports; target Microsoft Word fidelity remains a separate check.
 
-The authenticated `/profile/tailoring` workspace opens from Profile beside the base resume. Users manually create and edit proposals, select confirmed career facts, load a before/after review, and explicitly attest before approval. See [tailoring workflow](docs/tailoring-workflow.md) for conflict recovery, history, and eligibility limits. Phase 6 is locally release-ready for the current bounded DOCX support; hosted CI for this documentation/test-output-hook commit and any target Word-version comparison remain outside the local closure. Phase 7 has not started.
+The authenticated `/profile/tailoring` workspace opens from Profile beside the base resume. Users manually create and edit proposals, select confirmed career facts, load a before/after review, and explicitly attest before approval. See [tailoring workflow](docs/tailoring-workflow.md) for conflict recovery, history, and eligibility limits. Phase 6 is released for the current bounded DOCX support; target Word-version comparison remains a separate fidelity check. Phase 7 remains open: internal adapters do not expose user drafting, import, approval or export capabilities.

@@ -116,6 +116,12 @@ Phase 6 is released as `v0.6.0-truthful-tailoring`; local FR-080 evidence covers
 - **FR-084:** AI defaults to a disabled implementation; a deterministic fake exists only in tests. Typed failures and bounded future timeout/cancellation behavior preserve manual workflows. Phase 7A adds no adapter, SDK, network call, credentials, endpoint, frontend, migration, retry, cache or persistence.
 - **FR-085:** Future transmission requires explicit preview and consent for exact selected content, which can contain personal data and is not anonymized. Trusted instructions remain separate from untrusted text; no tools or secret access are allowed, delimiters are not a complete injection defense, and prompts/responses/evidence/mappings must never be logged.
 
+## Optional provider adapters (Phase 7B)
+
+- **FR-086:** Support OpenAI and Anthropic Claude behind the existing drafting interface with an internal protocol extension point. Only administrator/operator process configuration selects the provider/model; no end-user selection or ADMIN ownership bypass. Require explicit enablement and external valid credentials/model, with no default model, SDK, new dependency or disabled-mode network request.
+- **FR-087:** Fixed HTTPS destinations, no redirects or retries, bounded request/response bytes, connection/total deadlines, cancellation and bounded concurrency protect transport. Serialize only the approved DTO and allowlisted provider controls; keep internal identifiers and mappings local. Provider errors are safe typed outcomes without raw bodies or credentials.
+- **FR-088:** Structured output must pass local syntax, variant, size and evidence-alias checks. No adapter result mutates facts/proposals, approval or export. Verify with synthetic local mocks and manual-workflow regressions; no live user-data calls, public drafting endpoint, frontend, consent bypass, import or migration in 7B.
+
 ## Quality attributes
 
 - All authorization rules require integration tests.

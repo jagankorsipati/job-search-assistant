@@ -1,10 +1,7 @@
 package com.jobsearchassistant.integrations;
 
 import com.jobsearchassistant.integrations.drafting.GroundedDraftingProvider;
-import org.springframework.stereotype.Component;
-
-/** The only runtime implementation. There is deliberately no enable switch. */
-@Component
+/** Selected by default, without reading credentials or creating an HTTP client. */
 final class DisabledGroundedDraftingProvider implements GroundedDraftingProvider {
     @Override public Outcome suggest(Request request) { return Failure.DISABLED; }
 }
